@@ -252,9 +252,17 @@ document.addEventListener('DOMContentLoaded', () => {
     othersW.classList.toggle('hidden', s.pending !== 'Others');
   }
 
-  /* ══ SAVE (explicit + dedupe by Issue text) ══ */
-  function issueKey(s) {
-    return htmlToPlainText(s.issue || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  /* ══ SAVE (explicit + dedupe across ALL fields — only merges on exact match) ══ */
+  function entryKey(s) {
+    const norm = (html) => htmlToPlainText(html || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    return [
+      norm(s.issue),
+      norm(s.action),
+      norm(s.plan),
+      (s.pending || '').trim().toLowerCase(),
+      (s.others  || '').trim().toLowerCase(),
+      (s.date    || '').trim().toLowerCase(),
+    ].join('|||');
   }
 
   // Returns 'saved' | 'merged' | 'empty' via onDone(result)
@@ -263,12 +271,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!s.issue && !s.action && !s.pending && !s.date) { if (onDone) onDone('empty'); return; }
 
     loadHistory(list => {
-      const key = issueKey(s);
-      const dupeIdx = key ? list.findIndex(e => issueKey(e) === key) : -1;
+      const key = entryKey(s);
+      const dupeIdx = list.findIndex(e => entryKey(e) === key);
 
       let merged = false;
       if (dupeIdx !== -1) {
-        list = list.filter(e => issueKey(e) !== key);
+        list = list.filter(e => entryKey(e) !== key);
         merged = true;
       }
 
