@@ -449,20 +449,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const line  = (t) => `<p style="margin:0 0 8px 0;font-size:13px">${t}</p>`;
     const gap   = `<p style="margin:0;font-size:13px;line-height:1">&nbsp;</p>`;
 
+    // Decide whether the date value is meaningful enough to show in the email.
+    // Skip if empty, or clearly a "not applicable" type response.
+    function isShowableDate(v) {
+      const t = (v || '').trim();
+      if (!t) return false;
+      const skipWords = /^(na|n\/a|no|none|nil|not applicable|--*|—)$/i;
+      return !skipWords.test(t);
+    }
+    const showDate = isShowableDate(s.date);
+    const dateBlock = showDate ? `
+${gap}
+${label('Next Contact Date')}
+${line(escapeHtml(s.date))}` : '';
+
     let bodyHTML;
     if (planEmpty) {
-      // No Action Plan provided → Issue, Action Taken, Next Contact Date
+      // No Action Plan provided → Issue, Action Taken, (Next Contact Date if meaningful)
       bodyHTML = `
 ${label('Issue')}
 ${humanise(issueParts)}
 ${gap}
 ${label('Action Taken')}
-${humanise(actionParts)}
-${gap}
-${label('Next Contact Date')}
-${line(escapeHtml(s.date))}`;
+${humanise(actionParts)}${dateBlock}`;
     } else {
-      // Action Plan provided → Issue, Action Taken, Action Plan, Next Action Owner
+      // Action Plan provided → Issue, Action Taken, Action Plan, Next Action Owner, (Next Contact Date if meaningful)
       bodyHTML = `
 ${label('Issue')}
 ${humanise(issueParts)}
@@ -474,7 +485,7 @@ ${label('Action Plan')}
 ${humanise(planParts)}
 ${gap}
 ${label('Next Action Owner')}
-${line(escapeHtml(nextActionOwner(s)))}`;
+${line(escapeHtml(nextActionOwner(s)))}${dateBlock}`;
     }
 
     const emailHTML = `<div style="font-family:Segoe UI,Arial,sans-serif;color:#1e1e2e;line-height:1.6;max-width:680px">
