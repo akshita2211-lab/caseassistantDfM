@@ -60,6 +60,21 @@
             <div class="field-error hidden" id="err-action">This field is required.</div>
           </div>
 
+          <!-- NEXT ACTION / ACTION PLAN (optional) -->
+          <div class="field-group">
+            <label>Next Action / Action Plan <span class="opt">(optional)</span></label>
+            <div class="editor-wrap" id="wrap-actionplan">
+              <div class="rich-editor" id="actionplan" contenteditable="true" data-placeholder="Describe the next action or plan… (paste or attach images)"></div>
+              <div class="attach-bar">
+                <button class="attach-btn" data-target="actionplan" title="Attach image">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  Attach Image
+                </button>
+                <input type="file" class="file-input" id="file-actionplan" accept="image/*" multiple hidden />
+              </div>
+            </div>
+          </div>
+
           <div class="field-row">
             <!-- NEXT ACTION PENDING ON -->
             <div class="field-group">

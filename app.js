@@ -124,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── Element refs ── */
   const issueEl   = document.getElementById('issue');
   const actionEl  = document.getElementById('action');
+  const planEl    = document.getElementById('actionplan');
   const selectEl  = document.getElementById('pendingSelect');
   const othersW   = document.getElementById('othersWrap');
   const othersEl  = document.getElementById('othersText');
@@ -160,8 +161,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* ── Paste images (Issue & Action only) ── */
-  [issueEl, actionEl].forEach(editor => {
+  /* ── Paste images (Issue, Action, Action Plan) ── */
+  [issueEl, actionEl, planEl].forEach(editor => {
     editor.addEventListener('paste', e => {
       const items = e.clipboardData?.items || [];
       for (const item of items) {
@@ -218,6 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return {
       issue:    getEditorHTML(issueEl),
       action:   getEditorHTML(actionEl),
+      plan:     getEditorHTML(planEl),
       pending:  selectEl.value,
       others:   othersEl.value.trim(),
       date:     dateEl.innerText.trim(),
@@ -232,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ── Clear fields ── */
   function clearFields() {
-    issueEl.innerHTML = ''; actionEl.innerHTML = ''; dateEl.innerHTML = '';
+    issueEl.innerHTML = ''; actionEl.innerHTML = ''; planEl.innerHTML = ''; dateEl.innerHTML = '';
     selectEl.value = ''; selectEl.classList.remove('error');
     othersW.classList.add('hidden'); othersEl.value = ''; othersEl.classList.remove('error');
     ['err-issue','err-action','err-pending','err-others','err-nextdate'].forEach(id => document.getElementById(id).classList.add('hidden'));
@@ -243,6 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function restoreState(s) {
     issueEl.innerHTML  = s.issue  || '';
     actionEl.innerHTML = s.action || '';
+    planEl.innerHTML   = s.plan   || '';
     selectEl.value     = s.pending || '';
     othersEl.value     = s.others  || '';
     dateEl.innerHTML   = s.date    || '';
@@ -303,15 +306,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const s = currentState();
     const issueResized  = await resizeEditorImages(s.issue);
     const actionResized = await resizeEditorImages(s.action);
+    const planResized    = await resizeEditorImages(s.plan);
+    const planEmpty = !htmlToPlainText(s.plan).trim() && !s.plan.includes('<img');
+
     const rows = [
       ['Issue',                    issueResized],
       ['Action Taken',             actionResized],
+    ];
+    if (!planEmpty) rows.push(['Next Action / Action Plan', planResized]);
+    rows.push(
       ['Next Action Pending On',   escapeHtml(pendingLabel(s))],
       ['Next Contact Date / Time', escapeHtml(s.date)],
-    ];
+    );
     const htmlTable = buildHTMLTable(rows);
     const plain = rows.map(([l, c]) => {
-      const v = (l === 'Issue' || l === 'Action Taken') ? htmlToPlainText(c)
+      const v = (l === 'Issue' || l === 'Action Taken' || l === 'Next Action / Action Plan') ? htmlToPlainText(c)
                 : c.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
       return `${l}\t${v || '—'}`;
     }).join('\n');
@@ -343,6 +352,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const issueHTML  = await resizeEditorImages(s.issue);
     const actionHTML = await resizeEditorImages(s.action);
+    const planHTML    = await resizeEditorImages(s.plan);
+    const planEmpty = !htmlToPlainText(s.plan).trim() && !s.plan.includes('<img');
 
     // Split an editor's HTML into interleaved text-blocks and image-blocks
     function buildSectionRows(html) {
@@ -399,6 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const issueParts  = buildSectionRows(issueHTML);
     const actionParts = buildSectionRows(actionHTML);
+    const planParts    = buildSectionRows(planHTML);
 
     function humanise(html) {
       return html
@@ -411,13 +423,28 @@ document.addEventListener('DOMContentLoaded', () => {
         .replace(/\bClient\b/g, 'You');
     }
 
+    // Map "Next Action Pending On" → "Next Action Owner"
+    function nextActionOwner(s) {
+      switch (s.pending) {
+        case 'CO':
+        case 'Collab Owner':       return 'Microsoft Support';
+        case 'PG':                 return 'Microsoft Product Group';
+        case 'Cx':                 return 'You';
+        case 'CSA':
+        case 'Accounts Team':      return 'Microsoft Accounts Team';
+        case 'Others':             return s.others || '—';
+        default:                   return s.pending || '—';
+      }
+    }
+
     const label = (t) => `<p style="margin:0 0 4px 0;font-weight:700;font-size:13px;color:#1e1e2e;text-decoration:underline">${t}</p>`;
     const line  = (t) => `<p style="margin:0 0 8px 0;font-size:13px">${t}</p>`;
     const gap   = `<p style="margin:0;font-size:13px;line-height:1">&nbsp;</p>`;
 
-    const emailHTML = `<div style="font-family:Segoe UI,Arial,sans-serif;color:#1e1e2e;line-height:1.6;max-width:680px">
-${line('Hi,')}
-${line('Hope you are doing well. Please find below a quick update on the case.')}
+    let bodyHTML;
+    if (planEmpty) {
+      // No Action Plan provided → Issue, Action Taken, Next Contact Date
+      bodyHTML = `
 ${label('Issue')}
 ${humanise(issueParts)}
 ${gap}
@@ -425,7 +452,28 @@ ${label('Action Taken')}
 ${humanise(actionParts)}
 ${gap}
 ${label('Next Contact Date')}
-${line(escapeHtml(s.date))}
+${line(escapeHtml(s.date))}`;
+    } else {
+      // Action Plan provided → Issue, Action Taken, Action Plan, Next Action Owner
+      bodyHTML = `
+${label('Issue')}
+${humanise(issueParts)}
+${gap}
+${label('Action Taken')}
+${humanise(actionParts)}
+${gap}
+${label('Action Plan')}
+${humanise(planParts)}
+${gap}
+${label('Next Action Owner')}
+${line(escapeHtml(nextActionOwner(s)))}`;
+    }
+
+    const emailHTML = `<div style="font-family:Segoe UI,Arial,sans-serif;color:#1e1e2e;line-height:1.6;max-width:680px">
+${line('Hi,')}
+${line('Hope you are doing well. Please find below a quick update on the case.')}
+${bodyHTML}
+${gap}
 ${line('Please feel free to reach out if you have any questions.')}
 ${line('Regards')}
 </div>`.trim();
@@ -489,6 +537,7 @@ ${line('Regards')}
 
         const snippetIssue  = htmlToPlainText(item.issue  || '').slice(0, 70) || '—';
         const snippetAction = htmlToPlainText(item.action || '').slice(0, 70) || '—';
+        const snippetPlan   = htmlToPlainText(item.plan   || '').slice(0, 70);
 
         card.innerHTML = `
           <div class="history-card-header">
@@ -502,6 +551,7 @@ ${line('Regards')}
           <div class="history-card-body">
             <div class="history-row"><span class="history-label">Issue</span><span class="history-value">${escapeHtml(snippetIssue)}${item.issue && item.issue.length > 70 ? '…' : ''}</span></div>
             <div class="history-row"><span class="history-label">Action</span><span class="history-value">${escapeHtml(snippetAction)}${item.action && item.action.length > 70 ? '…' : ''}</span></div>
+            ${snippetPlan ? `<div class="history-row"><span class="history-label">Plan</span><span class="history-value">${escapeHtml(snippetPlan)}${item.plan && item.plan.length > 70 ? '…' : ''}</span></div>` : ''}
             <div class="history-row"><span class="history-label">Pending</span><span class="history-value">${escapeHtml(pendingLabel(item) || '—')}</span></div>
             <div class="history-row"><span class="history-label">Date</span><span class="history-value">${escapeHtml(item.date || '—')}</span></div>
           </div>`;

@@ -134,6 +134,7 @@ label {
   letter-spacing: 0.5px;
 }
 .req { color: var(--red); }
+.opt { color: var(--muted); text-transform: none; font-weight: 600; letter-spacing: 0; }
 
 /* ── Editor wrap ── */
 .editor-wrap {
