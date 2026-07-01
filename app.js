@@ -292,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btnSave').addEventListener('click', () => {
     saveCurrentToHistory(result => {
-      if (result === 'merged') showToast('toast', '🔄 Similar entry found. Keeping the latest copy and deleting older entries.');
+      if (result === 'merged') showToast('toast', '🔄 Duplicate entry found. Keeping the latest copy and deleting older entries.');
       else if (result === 'saved') showToast('toast', '✅ Saved to history!');
       else showToast('toast', 'Nothing to save.', true);
     });
@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!confirm('Save to history and clear all fields?')) return;
     saveCurrentToHistory(result => {
       clearFields();
-      if (result === 'merged') showToast('toast', '🔄 Similar entry found. Keeping the latest copy and deleting older entries.');
+      if (result === 'merged') showToast('toast', '🔄 Duplicate entry found. Keeping the latest copy and deleting older entries.');
       else showToast('toast', '🗑️ Cleared. State saved to history.');
     });
   });
@@ -344,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ta.value = plain; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
       }
       saveCurrentToHistory(result => {
-        if (result === 'merged') showToast('toast', '✅ Copied. 🔄 Similar entry found — keeping latest in history.');
+        if (result === 'merged') showToast('toast', '✅ Copied. 🔄 Duplicate entry found — keeping latest in history.');
         else showToast('toast', '✅ Copied to clipboard!');
       });
     } catch (err) {
