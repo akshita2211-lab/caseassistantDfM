@@ -604,7 +604,6 @@ ${line('Regards')}
 /* ═══════════════════════════════════════════════════════
    TAB SWITCHING + INTERNAL TITLE GENERATOR
    ═══════════════════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', () => {
 
 /* ── Tab switching ── */
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -663,6 +662,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     const lc     = fmtDate(lcEl.value);
     const nc     = fmtDate(ncEl.value);
     const status = statusEl.value;
+    const icm    = icmEl.value;
     const fqr    = fqrEl.value;
     const fts    = ftsEl.value;
     const sap    = sapEl.value;
@@ -863,5 +863,3 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   }
 
 })();
-
-}); // end DOMContentLoaded (tabs + ITG)
