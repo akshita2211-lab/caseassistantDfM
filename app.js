@@ -644,14 +644,15 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   }
 
   /* ── Element refs ── */
-  const lcEl     = document.getElementById('itg-lastContact');
-  const ncEl     = document.getElementById('itg-nextContact');
-  const statusEl = document.getElementById('itg-status');
-  const icmEl    = document.getElementById('itg-icm');
-  const fqrEl    = document.getElementById('itg-fqr');
-  const ftsEl    = document.getElementById('itg-fts');
-  const sapEl    = document.getElementById('itg-sap');
-  const preview  = document.getElementById('itg-preview');
+  const lcEl       = document.getElementById('itg-lastContact');
+  const ncEl       = document.getElementById('itg-nextContact');
+  const statusEl   = document.getElementById('itg-status');
+  const icmEl      = document.getElementById('itg-icm');
+  const fqrEl      = document.getElementById('itg-fqr');
+  const ftsEl      = document.getElementById('itg-fts');
+  const sapEl      = document.getElementById('itg-sap');
+  const commentsEl = document.getElementById('itg-comments');
+  const preview    = document.getElementById('itg-preview');
 
   /* ── Set defaults ── */
   lcEl.value = localDateStr(0);   // today
@@ -666,7 +667,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     const fqr    = fqrEl.value;
     const fts    = ftsEl.value;
     const sap    = sapEl.value;
-    return `LC: ${lc} | NC: ${nc} | Status: ${status} | IsFQR: ${fqr} | IsIcM: ${icm} | IsFTSfromotherregion: ${fts} | IsSAPCorrect: ${sap}`;
+    const comments = commentsEl.value.trim();
+    const base = `LC: ${lc} | NC: ${nc} | Status: ${status} | IsFQR: ${fqr} | IsIcM: ${icm} | IsFTSfromotherregion: ${fts} | IsSAPCorrect: ${sap}`;
+    return comments ? `${base} | Comments: ${comments}` : base;
   }
 
   /* ── Live preview ── */
@@ -676,6 +679,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   [lcEl, ncEl, statusEl, icmEl, fqrEl, ftsEl, sapEl].forEach(el =>
     el.addEventListener('change', updatePreview)
   );
+  commentsEl.addEventListener('input', updatePreview);
   updatePreview(); // initial render
 
   /* ── Toast ── */
@@ -712,10 +716,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       lc:     lcEl.value,
       nc:     ncEl.value,
       status: statusEl.value,
-      icm:    icmEl.value,
-      fqr:    fqrEl.value,
-      fts:    ftsEl.value,
-      sap:    sapEl.value,
+      icm:      icmEl.value,
+      fqr:      fqrEl.value,
+      fts:      ftsEl.value,
+      sap:      sapEl.value,
+      comments: commentsEl.value.trim(),
       output: buildOutput(),
       savedAt: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
     };
@@ -723,7 +728,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
   /* ── Dedup key: all fields ── */
   function itgKey(s) {
-    return [s.lc, s.nc, s.status, s.icm, s.fqr, s.fts, s.sap].join('|||');
+    return [s.lc, s.nc, s.status, s.icm, s.fqr, s.fts, s.sap, (s.comments||'').toLowerCase()].join('|||');
   }
 
   /* ── Save with dedup ── */
@@ -754,7 +759,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     icmEl.value    = s.icm    || 'No';
     fqrEl.value    = s.fqr    || 'Yes';
     ftsEl.value    = s.fts    || 'No';
-    sapEl.value    = s.sap    || 'Yes';
+    sapEl.value      = s.sap      || 'Yes';
+    commentsEl.value = s.comments || '';
     updatePreview();
   }
 
@@ -766,7 +772,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     icmEl.value    = 'No';
     fqrEl.value    = 'Yes';
     ftsEl.value    = 'No';
-    sapEl.value    = 'Yes';
+    sapEl.value      = 'Yes';
+    commentsEl.value = '';
     updatePreview();
   }
 
@@ -843,6 +850,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             <div class="history-row"><span class="history-label">NC</span><span class="history-value">${fmtDate(item.nc)}</span></div>
             <div class="history-row"><span class="history-label">Status</span><span class="history-value">${item.status || '—'}</span></div>
             <div class="history-row"><span class="history-label">Output</span><span class="history-value" style="white-space:normal;font-size:11px;font-family:monospace">${item.output || '—'}</span></div>
+            ${item.comments ? `<div class="history-row"><span class="history-label">Comments</span><span class="history-value">${item.comments}</span></div>` : ''}
           </div>`;
 
         const restore = () => { itgRestoreState(item); itgShowView('itg-viewMain'); };
