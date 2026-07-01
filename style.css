@@ -372,3 +372,98 @@ label {
   margin: 6px 0;
 }
 .email-preview:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-light); }
+
+/* ══ TABS ══ */
+.tab-bar {
+  display: flex;
+  border-bottom: 2px solid #e2e4ef;
+  margin-bottom: 4px;
+  gap: 2px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  text-align: center;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--blue); }
+.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+.tab-content { display: none; flex-direction: column; gap: 12px; }
+.tab-content.active { display: flex; }
+.tab-content.hidden { display: none; }
+
+/* Tab sub-header (back btn + title + history btn) */
+.tab-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1.5px solid #e2e4ef;
+  min-height: 38px;
+}
+.tab-header-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--blue);
+}
+.tab-header .icon-btn { margin-left: auto; }
+.tab-header .icon-btn:first-child { margin-left: 0; }
+
+/* ── Date inputs ── */
+.date-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.date-input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-light);
+}
+
+/* 4-col grid for Yes/No toggles */
+.field-row-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 640px) {
+  .field-row-4 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 420px) {
+  .field-row-4 { grid-template-columns: 1fr; }
+}
+
+/* ── ITG Preview ── */
+.itg-preview-wrap { display: flex; flex-direction: column; gap: 5px; }
+.itg-preview {
+  background: #f0f4fb;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.6;
+  word-break: break-all;
+  min-height: 42px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  letter-spacing: 0.2px;
+}

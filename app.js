@@ -599,3 +599,264 @@ ${line('Regards')}
     });
   }
 });
+
+
+/* ═══════════════════════════════════════════════════════
+   TAB SWITCHING
+   ═══════════════════════════════════════════════════════ */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tabId = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => { c.classList.remove('active'); c.classList.add('hidden'); });
+    btn.classList.add('active');
+    const tc = document.getElementById(tabId);
+    tc.classList.remove('hidden');
+    tc.classList.add('active');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════
+   INTERNAL TITLE GENERATOR — Tab 2
+   ═══════════════════════════════════════════════════════ */
+(function() {
+  const ITG_STORAGE_KEY = 'dfm_itg_history';
+  const ITG_MAX = 10;
+
+  /* ── Date helpers (system timezone) ── */
+  function localDateStr(offsetDays = 0) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    // Format as YYYY-MM-DD in LOCAL time (not UTC) for the date input
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  // Format a YYYY-MM-DD string as MM/DD/YY
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return `${m}/${d}/${String(y).slice(2)}`;
+  }
+
+  /* ── Element refs ── */
+  const lcEl     = document.getElementById('itg-lastContact');
+  const ncEl     = document.getElementById('itg-nextContact');
+  const statusEl = document.getElementById('itg-status');
+  const icmEl    = document.getElementById('itg-icm');
+  const fqrEl    = document.getElementById('itg-fqr');
+  const ftsEl    = document.getElementById('itg-fts');
+  const sapEl    = document.getElementById('itg-sap');
+  const preview  = document.getElementById('itg-preview');
+
+  /* ── Set defaults ── */
+  lcEl.value = localDateStr(0);   // today
+  ncEl.value = localDateStr(1);   // tomorrow
+
+  /* ── Build the output string ── */
+  function buildOutput() {
+    const lc     = fmtDate(lcEl.value);
+    const nc     = fmtDate(ncEl.value);
+    const status = statusEl.value;
+    const fqr    = fqrEl.value;
+    const fts    = ftsEl.value;
+    const sap    = sapEl.value;
+    return `LC: ${lc} | NC: ${nc} | Status: ${status} | IsFQR: ${fqr} | IsIcM: ${icm} | IsFTSfromotherregion: ${fts} | IsSAPCorrect: ${sap}`;
+  }
+
+  /* ── Live preview ── */
+  function updatePreview() {
+    preview.textContent = buildOutput();
+  }
+  [lcEl, ncEl, statusEl, icmEl, fqrEl, ftsEl, sapEl].forEach(el =>
+    el.addEventListener('change', updatePreview)
+  );
+  updatePreview(); // initial render
+
+  /* ── Toast ── */
+  function showToastITG(msg, isError = false) {
+    const t = document.getElementById('itg-toast');
+    t.textContent = msg;
+    t.className = 'toast' + (isError ? ' error-toast' : '');
+    t.classList.remove('hidden');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.add('hidden'), 2600);
+  }
+
+  /* ── History helpers ── */
+  function itgLoadHistory(cb) {
+    try { cb(JSON.parse(localStorage.getItem(ITG_STORAGE_KEY) || '[]')); }
+    catch { cb([]); }
+  }
+  function itgSaveHistory(list, cb) {
+    try { localStorage.setItem(ITG_STORAGE_KEY, JSON.stringify(list)); }
+    catch(e) { console.error(e); }
+    if (cb) cb();
+  }
+
+  function itgUpdateBadge(list) {
+    const b = document.getElementById('itg-histBadge');
+    b.textContent = list.length;
+    b.classList.toggle('hidden', list.length === 0);
+  }
+  itgLoadHistory(itgUpdateBadge);
+
+  /* ── Current state ── */
+  function itgCurrentState() {
+    return {
+      lc:     lcEl.value,
+      nc:     ncEl.value,
+      status: statusEl.value,
+      icm:    icmEl.value,
+      fqr:    fqrEl.value,
+      fts:    ftsEl.value,
+      sap:    sapEl.value,
+      output: buildOutput(),
+      savedAt: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+    };
+  }
+
+  /* ── Dedup key: all fields ── */
+  function itgKey(s) {
+    return [s.lc, s.nc, s.status, s.icm, s.fqr, s.fts, s.sap].join('|||');
+  }
+
+  /* ── Save with dedup ── */
+  function itgSaveToHistory(onDone) {
+    const s = itgCurrentState();
+    itgLoadHistory(list => {
+      const key = itgKey(s);
+      const isDupe = list.some(e => itgKey(e) === key);
+      let merged = false;
+      if (isDupe) {
+        list = list.filter(e => itgKey(e) !== key);
+        merged = true;
+      }
+      list.unshift(s);
+      if (list.length > ITG_MAX) list = list.slice(0, ITG_MAX);
+      itgSaveHistory(list, () => {
+        itgUpdateBadge(list);
+        if (onDone) onDone(merged ? 'merged' : 'saved');
+      });
+    });
+  }
+
+  /* ── Restore state ── */
+  function itgRestoreState(s) {
+    lcEl.value     = s.lc     || localDateStr(0);
+    ncEl.value     = s.nc     || localDateStr(1);
+    statusEl.value = s.status || statusEl.options[0].value;
+    icmEl.value    = s.icm    || 'No';
+    fqrEl.value    = s.fqr    || 'Yes';
+    ftsEl.value    = s.fts    || 'No';
+    sapEl.value    = s.sap    || 'Yes';
+    updatePreview();
+  }
+
+  /* ── Reset to defaults ── */
+  function itgClearFields() {
+    lcEl.value     = localDateStr(0);
+    ncEl.value     = localDateStr(1);
+    statusEl.value = statusEl.options[0].value;
+    icmEl.value    = 'No';
+    fqrEl.value    = 'Yes';
+    ftsEl.value    = 'No';
+    sapEl.value    = 'Yes';
+    updatePreview();
+  }
+
+  /* ── Views ── */
+  function itgShowView(id) {
+    document.querySelectorAll('#tab2 .view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  /* ── Copy ── */
+  document.getElementById('itg-btnCopy').addEventListener('click', async () => {
+    const text = buildOutput();
+    try {
+      await navigator.clipboard.writeText(text);
+      itgSaveToHistory(result => {
+        if (result === 'merged') showToastITG('✅ Copied. 🔄 Duplicate found — updated in history.');
+        else showToastITG('✅ Copied to clipboard!');
+      });
+    } catch {
+      showToastITG('❌ Copy failed. Try again.', true);
+    }
+  });
+
+  /* ── Save ── */
+  document.getElementById('itg-btnSave').addEventListener('click', () => {
+    itgSaveToHistory(result => {
+      if (result === 'merged') showToastITG('🔄 Duplicate found. Keeping the latest entry.');
+      else showToastITG('✅ Saved to history!');
+    });
+  });
+
+  /* ── Clear ── */
+  document.getElementById('itg-btnClear').addEventListener('click', () => {
+    if (!confirm('Save to history and reset all fields?')) return;
+    itgSaveToHistory(result => {
+      itgClearFields();
+      if (result === 'merged') showToastITG('🔄 Duplicate found. Keeping the latest entry.');
+      else showToastITG('🗑️ Cleared. State saved to history.');
+    });
+  });
+
+  /* ── History ── */
+  document.getElementById('itg-btnHistory').addEventListener('click', () => {
+    itgRenderHistory();
+    itgShowView('itg-viewHistory');
+  });
+  document.getElementById('itg-btnBackMain').addEventListener('click', () => itgShowView('itg-viewMain'));
+
+  document.getElementById('itg-btnClearHistory').addEventListener('click', () => {
+    if (!confirm('Clear all ITG history?')) return;
+    itgSaveHistory([], () => { itgUpdateBadge([]); itgRenderHistory(); });
+  });
+
+  function itgRenderHistory() {
+    itgLoadHistory(list => {
+      const container = document.getElementById('itg-historyList');
+      container.innerHTML = '';
+      if (list.length === 0) {
+        container.innerHTML = '<div class="history-empty">No history yet.<br>Copy or Save an entry to see it here.</div>';
+        return;
+      }
+      list.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'history-card';
+        card.innerHTML = `
+          <div class="history-card-header">
+            <span class="history-card-time">${item.savedAt || ''}</span>
+            <button class="history-card-del" data-idx="${idx}" title="Delete">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </div>
+          <div class="history-card-body">
+            <div class="history-row"><span class="history-label">LC</span><span class="history-value">${fmtDate(item.lc)}</span></div>
+            <div class="history-row"><span class="history-label">NC</span><span class="history-value">${fmtDate(item.nc)}</span></div>
+            <div class="history-row"><span class="history-label">Status</span><span class="history-value">${item.status || '—'}</span></div>
+            <div class="history-row"><span class="history-label">Output</span><span class="history-value" style="white-space:normal;font-size:11px;font-family:monospace">${item.output || '—'}</span></div>
+          </div>`;
+
+        const restore = () => { itgRestoreState(item); itgShowView('itg-viewMain'); };
+        card.querySelector('.history-card-body').addEventListener('click', restore);
+        card.querySelector('.history-card-header').addEventListener('click', e => {
+          if (!e.target.closest('.history-card-del')) restore();
+        });
+        card.querySelector('.history-card-del').addEventListener('click', e => {
+          e.stopPropagation();
+          itgLoadHistory(l => {
+            l.splice(idx, 1);
+            itgSaveHistory(l, () => { itgUpdateBadge(l); itgRenderHistory(); });
+          });
+        });
+        container.appendChild(card);
+      });
+    });
+  }
+
+})();

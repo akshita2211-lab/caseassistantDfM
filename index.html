@@ -12,177 +12,297 @@
   <div class="page">
     <div class="card">
 
-      <!-- ── MAIN VIEW ── -->
-      <div id="viewMain" class="view active">
+      <!-- ── TAB BAR ── -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="tab1">📋 Case Note / Email Generator</button>
+        <button class="tab-btn" data-tab="tab2">🏷️ Internal Title Generator</button>
+      </div>
 
-        <div class="header">
-          <span class="header-icon">📋</span>
-          <h1>Case Assistant <span class="version">DfM</span></h1>
-          <button id="btnHistory" class="icon-btn" title="View History">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-            <span class="hist-badge hidden" id="histBadge">0</span>
-          </button>
+      <!-- ══════════════════════════════════════
+           TAB 1 — Case Note / Email Generator
+           ══════════════════════════════════════ -->
+      <div id="tab1" class="tab-content active">
+
+        <!-- MAIN VIEW -->
+        <div id="viewMain" class="view active">
+          <div class="tab-header">
+            <button id="btnHistory" class="icon-btn" title="View History">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span class="hist-badge hidden" id="histBadge">0</span>
+            </button>
+          </div>
+
+          <div class="fields">
+
+            <div class="field-group">
+              <label>Issue <span class="req">*</span></label>
+              <div class="editor-wrap" id="wrap-issue">
+                <div class="rich-editor" id="issue" contenteditable="true" data-placeholder="Describe the issue… (paste or attach images)"></div>
+                <div class="attach-bar">
+                  <button class="attach-btn" data-target="issue">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Attach Image
+                  </button>
+                  <input type="file" class="file-input" id="file-issue" accept="image/*" multiple hidden />
+                </div>
+              </div>
+              <div class="field-error hidden" id="err-issue">This field is required.</div>
+            </div>
+
+            <div class="field-group">
+              <label>Action Taken <span class="req">*</span></label>
+              <div class="editor-wrap" id="wrap-action">
+                <div class="rich-editor" id="action" contenteditable="true" data-placeholder="What actions were taken… (paste or attach images)"></div>
+                <div class="attach-bar">
+                  <button class="attach-btn" data-target="action">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Attach Image
+                  </button>
+                  <input type="file" class="file-input" id="file-action" accept="image/*" multiple hidden />
+                </div>
+              </div>
+              <div class="field-error hidden" id="err-action">This field is required.</div>
+            </div>
+
+            <div class="field-group">
+              <label>Next Action / Action Plan <span class="opt">(optional)</span></label>
+              <div class="editor-wrap" id="wrap-actionplan">
+                <div class="rich-editor" id="actionplan" contenteditable="true" data-placeholder="Describe the next action or plan… (paste or attach images)"></div>
+                <div class="attach-bar">
+                  <button class="attach-btn" data-target="actionplan">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Attach Image
+                  </button>
+                  <input type="file" class="file-input" id="file-actionplan" accept="image/*" multiple hidden />
+                </div>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label>Next Action Pending On <span class="req">*</span></label>
+                <div class="select-wrap">
+                  <select id="pendingSelect" class="dropdown">
+                    <option value="">— Select —</option>
+                    <option value="CO">CO</option>
+                    <option value="Cx">Cx</option>
+                    <option value="Collab Owner">Collab Owner</option>
+                    <option value="Accounts Team">Accounts Team</option>
+                    <option value="PG">PG</option>
+                    <option value="CSA">CSA</option>
+                    <option value="Others">Others</option>
+                  </select>
+                  <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="field-error hidden" id="err-pending">Please select an option.</div>
+                <div id="othersWrap" class="others-wrap hidden">
+                  <input type="text" id="othersText" class="others-input" placeholder="Please specify…" />
+                  <div class="field-error hidden" id="err-others">Please specify.</div>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label>Next Contact Date / Time <span class="req">*</span></label>
+                <div class="editor-wrap plain-wrap" id="wrap-nextdate">
+                  <div class="rich-editor plain-only" id="nextdate" contenteditable="true" data-placeholder="Enter next contact date / time…"></div>
+                </div>
+                <div class="field-error hidden" id="err-nextdate">This field is required.</div>
+              </div>
+            </div>
+
+          </div>
+
+          <div id="toast" class="toast hidden"></div>
+
+          <div class="actions">
+            <button id="btnCopy" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy
+            </button>
+            <button id="btnEmail" class="btn btn-email">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Email
+            </button>
+            <button id="btnSave" class="btn btn-save">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save
+            </button>
+            <button id="btnClear" class="btn btn-clear">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+              Clear
+            </button>
+          </div>
         </div>
 
-        <div class="fields">
+        <!-- HISTORY VIEW (Tab 1) -->
+        <div id="viewHistory" class="view">
+          <div class="tab-header">
+            <button id="btnBackMain" class="icon-btn" title="Back">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span class="tab-header-title">History <span class="version">up to 10</span></span>
+            <button id="btnClearHistory" class="icon-btn danger" title="Clear all history">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </div>
 
-          <!-- ISSUE -->
-          <div class="field-group">
-            <label>Issue <span class="req">*</span></label>
-            <div class="editor-wrap" id="wrap-issue">
-              <div class="rich-editor" id="issue" contenteditable="true" data-placeholder="Describe the issue… (paste or attach images)"></div>
-              <div class="attach-bar">
-                <button class="attach-btn" data-target="issue" title="Attach image">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  Attach Image
-                </button>
-                <input type="file" class="file-input" id="file-issue" accept="image/*" multiple hidden />
-              </div>
-            </div>
-            <div class="field-error hidden" id="err-issue">This field is required.</div>
+        <!-- EMAIL VIEW -->
+        <div id="viewEmail" class="view">
+          <div class="tab-header">
+            <button id="btnBackEmail" class="icon-btn" title="Back">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span class="tab-header-title">Generated Email</span>
+          </div>
+          <div id="emailPreview" class="email-preview" contenteditable="true"></div>
+          <div id="toastEmail" class="toast hidden"></div>
+          <div class="actions">
+            <button id="btnCopyEmail" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy Email
+            </button>
+            <button id="btnBackEmail2" class="btn btn-secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Back
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /tab1 -->
+
+      <!-- ══════════════════════════════════════
+           TAB 2 — Internal Title Generator
+           ══════════════════════════════════════ -->
+      <div id="tab2" class="tab-content hidden">
+
+        <!-- MAIN VIEW -->
+        <div id="itg-viewMain" class="view active">
+          <div class="tab-header">
+            <button id="itg-btnHistory" class="icon-btn" title="View History">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span class="hist-badge hidden" id="itg-histBadge">0</span>
+            </button>
           </div>
 
-          <!-- ACTION TAKEN -->
-          <div class="field-group">
-            <label>Action Taken <span class="req">*</span></label>
-            <div class="editor-wrap" id="wrap-action">
-              <div class="rich-editor" id="action" contenteditable="true" data-placeholder="What actions were taken… (paste or attach images)"></div>
-              <div class="attach-bar">
-                <button class="attach-btn" data-target="action" title="Attach image">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  Attach Image
-                </button>
-                <input type="file" class="file-input" id="file-action" accept="image/*" multiple hidden />
+          <div class="fields">
+
+            <div class="field-row">
+              <div class="field-group">
+                <label>Last Contact</label>
+                <input type="date" id="itg-lastContact" class="date-input" />
+              </div>
+              <div class="field-group">
+                <label>Next Contact</label>
+                <input type="date" id="itg-nextContact" class="date-input" />
               </div>
             </div>
-            <div class="field-error hidden" id="err-action">This field is required.</div>
-          </div>
 
-          <!-- NEXT ACTION / ACTION PLAN (optional) -->
-          <div class="field-group">
-            <label>Next Action / Action Plan <span class="opt">(optional)</span></label>
-            <div class="editor-wrap" id="wrap-actionplan">
-              <div class="rich-editor" id="actionplan" contenteditable="true" data-placeholder="Describe the next action or plan… (paste or attach images)"></div>
-              <div class="attach-bar">
-                <button class="attach-btn" data-target="actionplan" title="Attach image">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  Attach Image
-                </button>
-                <input type="file" class="file-input" id="file-actionplan" accept="image/*" multiple hidden />
-              </div>
-            </div>
-          </div>
-
-          <div class="field-row">
-            <!-- NEXT ACTION PENDING ON -->
             <div class="field-group">
-              <label>Next Action Pending On <span class="req">*</span></label>
+              <label>Current Status</label>
               <div class="select-wrap">
-                <select id="pendingSelect" class="dropdown">
-                  <option value="">— Select —</option>
-                  <option value="CO">CO</option>
-                  <option value="Cx">Cx</option>
-                  <option value="Collab Owner">Collab Owner</option>
-                  <option value="Accounts Team">Accounts Team</option>
-                  <option value="PG">PG</option>
-                  <option value="CSA">CSA</option>
-                  <option value="Others">Others</option>
+                <select id="itg-status" class="dropdown">
+                  <option value="Troubleshooting">Troubleshooting</option>
+                  <option value="Pending log analysis">Pending log analysis</option>
+                  <option value="Action plan provided">Action plan provided</option>
+                  <option value="Pending cx to share information requested">Pending cx to share information requested</option>
+                  <option value="Pending PG">Pending PG</option>
                 </select>
                 <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
-              <div class="field-error hidden" id="err-pending">Please select an option.</div>
-              <div id="othersWrap" class="others-wrap hidden">
-                <input type="text" id="othersText" class="others-input" placeholder="Please specify…" />
-                <div class="field-error hidden" id="err-others">Please specify.</div>
+            </div>
+
+            <div class="field-row field-row-4">
+              <div class="field-group">
+                <label>Is IcM?</label>
+                <div class="select-wrap">
+                  <select id="itg-icm" class="dropdown">
+                    <option value="No" selected>No</option>
+                    <option value="Yes">Yes</option>
+                  </select>
+                  <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div class="field-group">
+                <label>Is FQR?</label>
+                <div class="select-wrap">
+                  <select id="itg-fqr" class="dropdown">
+                    <option value="Yes" selected>Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                  <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div class="field-group">
+                <label>Is FTS from other region?</label>
+                <div class="select-wrap">
+                  <select id="itg-fts" class="dropdown">
+                    <option value="No" selected>No</option>
+                    <option value="Yes">Yes</option>
+                  </select>
+                  <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div class="field-group">
+                <label>Is SAP Correct?</label>
+                <div class="select-wrap">
+                  <select id="itg-sap" class="dropdown">
+                    <option value="Yes" selected>Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                  <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
               </div>
             </div>
 
-            <!-- NEXT CONTACT DATE/TIME -->
-            <div class="field-group">
-              <label>Next Contact Date / Time <span class="req">*</span></label>
-              <div class="editor-wrap plain-wrap" id="wrap-nextdate">
-                <div class="rich-editor plain-only" id="nextdate" contenteditable="true" data-placeholder="Enter next contact date / time…"></div>
-              </div>
-              <div class="field-error hidden" id="err-nextdate">This field is required.</div>
+            <!-- Preview strip -->
+            <div class="itg-preview-wrap">
+              <label>Preview</label>
+              <div id="itg-preview" class="itg-preview"></div>
             </div>
+
           </div>
 
-        </div><!-- /fields -->
+          <div id="itg-toast" class="toast hidden"></div>
 
-        <div id="toast" class="toast hidden"></div>
-
-        <div class="actions">
-          <button id="btnCopy" class="btn btn-primary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
-            Copy
-          </button>
-          <button id="btnEmail" class="btn btn-email">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-            </svg>
-            Email
-          </button>
-          <button id="btnSave" class="btn btn-save">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-            </svg>
-            Save
-          </button>
-          <button id="btnClear" class="btn btn-clear">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
-            </svg>
-            Clear
-          </button>
+          <div class="actions">
+            <button id="itg-btnCopy" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy to Clipboard
+            </button>
+            <button id="itg-btnSave" class="btn btn-save">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save
+            </button>
+            <button id="itg-btnClear" class="btn btn-clear">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+              Clear
+            </button>
+          </div>
         </div>
 
-      </div>
-
-      <!-- ── HISTORY VIEW ── -->
-      <div id="viewHistory" class="view">
-        <div class="header">
-          <button id="btnBackMain" class="icon-btn" title="Back">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <h1>History <span class="version">up to 10</span></h1>
-          <button id="btnClearHistory" class="icon-btn danger" title="Clear all history">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-            </svg>
-          </button>
+        <!-- HISTORY VIEW (Tab 2) -->
+        <div id="itg-viewHistory" class="view">
+          <div class="tab-header">
+            <button id="itg-btnBackMain" class="icon-btn" title="Back">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span class="tab-header-title">History <span class="version">up to 10</span></span>
+            <button id="itg-btnClearHistory" class="icon-btn danger" title="Clear all history">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </div>
+          <div id="itg-historyList" class="history-list"></div>
         </div>
-        <div id="historyList" class="history-list"></div>
-      </div>
 
-      <!-- ── EMAIL VIEW ── -->
-      <div id="viewEmail" class="view">
-        <div class="header">
-          <button id="btnBackEmail" class="icon-btn" title="Back">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <h1>Generated Email</h1>
-        </div>
-        <div id="emailPreview" class="email-preview" contenteditable="true"></div>
-        <div id="toastEmail" class="toast hidden"></div>
-        <div class="actions">
-          <button id="btnCopyEmail" class="btn btn-primary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
-            Copy Email
-          </button>
-          <button id="btnBackEmail2" class="btn btn-secondary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Back
-          </button>
-        </div>
-      </div>
+      </div><!-- /tab2 -->
 
-    </div>
+    </div><!-- /card -->
 
     <p class="footer-note">Saved locally in this browser — data does not leave your device.</p>
   </div>
