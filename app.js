@@ -602,8 +602,11 @@ ${line('Regards')}
 
 
 /* ═══════════════════════════════════════════════════════
-   TAB SWITCHING
+   TAB SWITCHING + INTERNAL TITLE GENERATOR
    ═══════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+
+/* ── Tab switching ── */
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tabId = btn.dataset.tab;
@@ -860,3 +863,5 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   }
 
 })();
+
+}); // end DOMContentLoaded (tabs + ITG)
