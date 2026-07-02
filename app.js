@@ -292,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btnSave').addEventListener('click', () => {
     saveCurrentToHistory(result => {
-      if (result === 'merged') showToast('toast', '🔄 Duplicate entry found — keeping latest in history.');
+      if (result === 'merged') showToast('toast', '🔄 Similar entry found. Keeping the latest copy and deleting older entries.');
       else if (result === 'saved') showToast('toast', '✅ Saved to history!');
       else showToast('toast', 'Nothing to save.', true);
     });
@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!confirm('Save to history and clear all fields?')) return;
     saveCurrentToHistory(result => {
       clearFields();
-      if (result === 'merged') showToast('toast', '🔄 Duplicate entry found — keeping latest in history.');
+      if (result === 'merged') showToast('toast', '🔄 Similar entry found. Keeping the latest copy and deleting older entries.');
       else showToast('toast', '🗑️ Cleared. State saved to history.');
     });
   });
@@ -344,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ta.value = plain; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
       }
       saveCurrentToHistory(result => {
-        if (result === 'merged') showToast('toast', '✅ Copied. 🔄 Duplicate entry found — keeping latest in history.');
+        if (result === 'merged') showToast('toast', '✅ Copied. 🔄 Similar entry found — keeping latest in history.');
         else showToast('toast', '✅ Copied to clipboard!');
       });
     } catch (err) {
@@ -525,12 +525,16 @@ ${line('Regards')}
 
   /* ══ HISTORY view ══ */
   document.getElementById('btnHistory').addEventListener('click', () => {
+    document.getElementById('historySearch').value = '';
     renderHistory();
     showView('viewHistory');
   });
   document.getElementById('btnBackMain').addEventListener('click', () => showView('viewMain'));
   document.getElementById('btnBackEmail').addEventListener('click', () => showView('viewMain'));
   document.getElementById('btnBackEmail2').addEventListener('click', () => showView('viewMain'));
+
+  /* ── Search input — live filter ── */
+  document.getElementById('historySearch').addEventListener('input', renderHistory);
 
   /* ── Clear all history ── */
   document.getElementById('btnClearHistory').addEventListener('click', () => {
@@ -543,14 +547,28 @@ ${line('Regards')}
 
   /* ── Render history cards ── */
   function renderHistory() {
+    const query = (document.getElementById('historySearch').value || '').trim().toLowerCase();
     loadHistory(list => {
       const container = document.getElementById('historyList');
       container.innerHTML = '';
+
+      // Filter by issue text if query is present
+      const filtered = query
+        ? list.filter(item => htmlToPlainText(item.issue || '').toLowerCase().includes(query))
+        : list;
+
       if (list.length === 0) {
         container.innerHTML = '<div class="history-empty">No history yet.<br>Save or copy a note to see it here.</div>';
         return;
       }
-      list.forEach((item, idx) => {
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="history-empty">No results for "<strong>${escapeHtml(query)}</strong>".</div>`;
+        return;
+      }
+
+      filtered.forEach((item, idx) => {
+        // Use original index for deletion (so splice hits the right entry)
+        const origIdx = list.indexOf(item);
         const card = document.createElement('div');
         card.className = 'history-card';
 
@@ -558,17 +576,27 @@ ${line('Regards')}
         const snippetAction = htmlToPlainText(item.action || '').slice(0, 70) || '—';
         const snippetPlan   = htmlToPlainText(item.plan   || '').slice(0, 70);
 
+        // Highlight matched query in issue snippet
+        function highlight(text) {
+          if (!query) return escapeHtml(text);
+          const idx = text.toLowerCase().indexOf(query);
+          if (idx === -1) return escapeHtml(text);
+          return escapeHtml(text.slice(0, idx))
+            + `<mark style="background:#fff0a0;border-radius:2px">${escapeHtml(text.slice(idx, idx + query.length))}</mark>`
+            + escapeHtml(text.slice(idx + query.length));
+        }
+
         card.innerHTML = `
           <div class="history-card-header">
             <span class="history-card-time">${item.savedAt || ''}</span>
-            <button class="history-card-del" data-idx="${idx}" title="Delete">
+            <button class="history-card-del" title="Delete">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
               </svg>
             </button>
           </div>
           <div class="history-card-body">
-            <div class="history-row"><span class="history-label">Issue</span><span class="history-value">${escapeHtml(snippetIssue)}${item.issue && item.issue.length > 70 ? '…' : ''}</span></div>
+            <div class="history-row"><span class="history-label">Issue</span><span class="history-value">${highlight(snippetIssue)}${item.issue && item.issue.length > 70 ? '…' : ''}</span></div>
             <div class="history-row"><span class="history-label">Action</span><span class="history-value">${escapeHtml(snippetAction)}${item.action && item.action.length > 70 ? '…' : ''}</span></div>
             ${snippetPlan ? `<div class="history-row"><span class="history-label">Plan</span><span class="history-value">${escapeHtml(snippetPlan)}${item.plan && item.plan.length > 70 ? '…' : ''}</span></div>` : ''}
             <div class="history-row"><span class="history-label">Pending</span><span class="history-value">${escapeHtml(pendingLabel(item) || '—')}</span></div>
@@ -589,7 +617,7 @@ ${line('Regards')}
         card.querySelector('.history-card-del').addEventListener('click', e => {
           e.stopPropagation();
           loadHistory(l => {
-            l.splice(idx, 1);
+            l.splice(origIdx, 1);
             saveHistory(l, () => { updateBadge(l); renderHistory(); });
           });
         });
