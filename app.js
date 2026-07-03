@@ -690,7 +690,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       return 'Troubleshooting';
     if (/^(pending closure confirmation|pending recovery|action plan shared)$/i.test(s))
       return 'Waiting for Customer Confirmation';
-    if (/^(pending pg|action plan provided by pg)$/i.test(s))
+    if (/^(pending pg|action plan provided by pg|pending cx to share information requested by pg)$/i.test(s))
       return 'Waiting for Product Team';
     if (/^issue resolved, rca pending$/i.test(s))
       return 'Mitigated';
