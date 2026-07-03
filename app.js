@@ -2,7 +2,7 @@
    Case Assistant - DfM  |  Web App  |  app.js
    ═══════════════════════════════════════════════════════ */
 
-const MAX_HISTORY = 10;
+const MAX_HISTORY = 20;
 const IMG_MAX_W = 700;   // max width; height is always proportional
 const STORAGE_KEY = 'dfm_history';
 
