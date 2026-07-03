@@ -516,3 +516,13 @@ label {
   box-shadow: 0 0 0 3px var(--blue-light);
 }
 .history-search::placeholder { color: #b0b8d0; }
+
+/* ── Suggested DfM status ── */
+.itg-suggested {
+  background: #eef6ee;
+  border-color: #a8d5a8;
+  color: #1a5e1a;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: normal;
+}

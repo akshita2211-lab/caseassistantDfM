@@ -679,8 +679,26 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   const fqrEl      = document.getElementById('itg-fqr');
   const ftsEl      = document.getElementById('itg-fts');
   const sapEl      = document.getElementById('itg-sap');
-  const commentsEl = document.getElementById('itg-comments');
-  const preview    = document.getElementById('itg-preview');
+  const commentsEl      = document.getElementById('itg-comments');
+  const preview         = document.getElementById('itg-preview');
+  const suggestedEl     = document.getElementById('itg-suggested-status');
+
+  /* ── Suggested DfM Case Status mapping ── */
+  function suggestedStatus() {
+    const s = statusEl.value;
+    if (/^(troubleshooting|pending log analysis)$/i.test(s))
+      return 'Troubleshooting';
+    if (/^(pending closure confirmation|pending recovery|action plan shared|action plan provided)$/i.test(s))
+      return 'Waiting for Customer Confirmation';
+    if (/^pending pg$/i.test(s))
+      return 'Waiting for Product Team';
+    if (/^issue resolved, rca pending$/i.test(s))
+      return 'Mitigated';
+    if (/^(pending csa alignment|csa involved)$/i.test(s))
+      return 'Waiting for Customer Confirmation';
+    // Unresponsive cx, Pending cx to share..., anything else
+    return 'Pending Customer Response';
+  }
 
   /* ── Set defaults ── */
   lcEl.value = localDateStr(0);   // today
@@ -703,6 +721,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   /* ── Live preview ── */
   function updatePreview() {
     preview.textContent = buildOutput();
+    suggestedEl.textContent = suggestedStatus();
   }
   [lcEl, ncEl, statusEl, icmEl, fqrEl, ftsEl, sapEl].forEach(el =>
     el.addEventListener('change', updatePreview)
@@ -741,22 +760,23 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   /* ── Current state ── */
   function itgCurrentState() {
     return {
-      lc:     lcEl.value,
-      nc:     ncEl.value,
-      status: statusEl.value,
-      icm:      icmEl.value,
-      fqr:      fqrEl.value,
-      fts:      ftsEl.value,
-      sap:      sapEl.value,
-      comments: commentsEl.value.trim(),
-      output: buildOutput(),
+      lc:               lcEl.value,
+      nc:               ncEl.value,
+      status:           statusEl.value,
+      icm:              icmEl.value,
+      fqr:              fqrEl.value,
+      fts:              ftsEl.value,
+      sap:              sapEl.value,
+      comments:         commentsEl.value.trim(),
+      suggestedDfmStatus: suggestedStatus(),
+      output:           buildOutput(),
       savedAt: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
     };
   }
 
   /* ── Dedup key: all fields ── */
   function itgKey(s) {
-    return [s.lc, s.nc, s.status, s.icm, s.fqr, s.fts, s.sap, (s.comments||'').toLowerCase()].join('|||');
+    return [s.lc, s.nc, s.status, s.icm, s.fqr, s.fts, s.sap, (s.comments||'').toLowerCase(), (s.suggestedDfmStatus||'')].join('|||');
   }
 
   /* ── Save with dedup ── */
@@ -781,13 +801,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
   /* ── Restore state ── */
   function itgRestoreState(s) {
-    lcEl.value     = s.lc     || localDateStr(0);
-    ncEl.value     = s.nc     || localDateStr(1);
-    statusEl.value = s.status || statusEl.options[0].value;
-    icmEl.value    = s.icm    || 'No';
-    fqrEl.value    = s.fqr    || 'Yes';
-    ftsEl.value    = s.fts    || 'No';
-    sapEl.value      = s.sap      || 'Yes';
+    lcEl.value       = s.lc     || localDateStr(0);
+    ncEl.value       = s.nc     || localDateStr(1);
+    statusEl.value   = s.status || statusEl.options[0].value;
+    icmEl.value      = s.icm    || 'No';
+    fqrEl.value      = s.fqr    || 'Yes';
+    ftsEl.value      = s.fts    || 'No';
+    sapEl.value      = s.sap    || 'Yes';
     commentsEl.value = s.comments || '';
     updatePreview();
   }
@@ -877,6 +897,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             <div class="history-row"><span class="history-label">LC</span><span class="history-value">${fmtDate(item.lc)}</span></div>
             <div class="history-row"><span class="history-label">NC</span><span class="history-value">${fmtDate(item.nc)}</span></div>
             <div class="history-row"><span class="history-label">Status</span><span class="history-value">${item.status || '—'}</span></div>
+            ${item.suggestedDfmStatus ? `<div class="history-row"><span class="history-label">DfM Status</span><span class="history-value" style="color:#1a5e1a;font-weight:600">${item.suggestedDfmStatus}</span></div>` : ''}
             <div class="history-row"><span class="history-label">Output</span><span class="history-value" style="white-space:normal;font-size:11px;font-family:monospace">${item.output || '—'}</span></div>
             ${item.comments ? `<div class="history-row"><span class="history-label">Comments</span><span class="history-value">${item.comments}</span></div>` : ''}
           </div>`;
