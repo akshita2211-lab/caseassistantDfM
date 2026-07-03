@@ -118,6 +118,26 @@ function showToast(id, msg, isError = false) {
   t._timer = setTimeout(() => t.classList.add('hidden'), 2600);
 }
 
+/* ── Power Automate click logger ────────────────────────
+   Paste your HTTP trigger URL below once Power Automate
+   is set up. Until then, logging is silently skipped.
+   ─────────────────────────────────────────────────────── */
+const POWER_AUTOMATE_URL = 'YOUR_POWER_AUTOMATE_HTTP_TRIGGER_URL_HERE';
+
+async function logClickToExcel(payload) {
+  if (!POWER_AUTOMATE_URL || POWER_AUTOMATE_URL.startsWith('YOUR_')) return;
+  try {
+    await fetch(POWER_AUTOMATE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      keepalive: true  // fires even if page navigates away
+    });
+  } catch (e) {
+    console.warn('Usage log failed (non-blocking):', e.message);
+  }
+}
+
 /* ══════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -346,6 +366,16 @@ document.addEventListener('DOMContentLoaded', () => {
       saveCurrentToHistory(result => {
         if (result === 'merged') showToast('toast', '✅ Copied. 🔄 Similar entry found — keeping latest in history.');
         else showToast('toast', '✅ Copied to clipboard!');
+      });
+      // Log to Excel via Power Automate
+      logClickToExcel({
+        tab:       'Case Note / Email Generator',
+        button:    'Copy to Clipboard',
+        timestamp: new Date().toISOString(),
+        date_local: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
+        issue_snippet: htmlToPlainText(s.issue).slice(0, 80).trim() || '—',
+        pending_on:    pendingLabel(s),
+        next_contact:  s.date
       });
     } catch (err) {
       console.error(err);
@@ -664,20 +694,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     return `${y}-${m}-${day}`;
   }
 
-  // Next weekday: Fri/Sat/Sun → Mon, otherwise tomorrow
-  function nextWeekdayDateStr() {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    const dow = d.getDay(); // 0=Sun, 5=Fri, 6=Sat
-    if (dow === 5) d.setDate(d.getDate() + 3);      // Fri → Mon
-    else if (dow === 6) d.setDate(d.getDate() + 2); // Sat → Mon
-    else if (dow === 0) d.setDate(d.getDate() + 1); // Sun → Mon
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }
-
   // Format a YYYY-MM-DD string as MM/DD/YY
   function fmtDate(iso) {
     if (!iso) return '';
@@ -693,12 +709,30 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   const fqrEl      = document.getElementById('itg-fqr');
   const ftsEl      = document.getElementById('itg-fts');
   const sapEl      = document.getElementById('itg-sap');
-  const commentsEl = document.getElementById('itg-comments');
-  const preview    = document.getElementById('itg-preview');
+  const commentsEl      = document.getElementById('itg-comments');
+  const preview         = document.getElementById('itg-preview');
+  const suggestedEl     = document.getElementById('itg-suggested-status');
+
+  /* ── Suggested DfM Case Status mapping ── */
+  function suggestedStatus() {
+    const s = statusEl.value;
+    if (/^(troubleshooting|pending log analysis)$/i.test(s))
+      return 'Troubleshooting';
+    if (/^(pending closure confirmation|pending recovery|action plan shared|action plan provided)$/i.test(s))
+      return 'Waiting for Customer Confirmation';
+    if (/^pending pg$/i.test(s))
+      return 'Waiting for Product Team';
+    if (/^issue resolved, rca pending$/i.test(s))
+      return 'Mitigated';
+    if (/^(pending csa alignment|csa involved)$/i.test(s))
+      return 'Waiting for Customer Confirmation';
+    // Unresponsive cx, Pending cx to share..., anything else
+    return 'Pending Customer Response';
+  }
 
   /* ── Set defaults ── */
   lcEl.value = localDateStr(0);   // today
-  ncEl.value = nextWeekdayDateStr();   // next weekday
+  ncEl.value = localDateStr(1);   // tomorrow
 
   /* ── Build the output string ── */
   function buildOutput() {
@@ -717,6 +751,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   /* ── Live preview ── */
   function updatePreview() {
     preview.textContent = buildOutput();
+    suggestedEl.textContent = suggestedStatus();
   }
   [lcEl, ncEl, statusEl, icmEl, fqrEl, ftsEl, sapEl].forEach(el =>
     el.addEventListener('change', updatePreview)
@@ -755,22 +790,23 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   /* ── Current state ── */
   function itgCurrentState() {
     return {
-      lc:     lcEl.value,
-      nc:     ncEl.value,
-      status: statusEl.value,
-      icm:      icmEl.value,
-      fqr:      fqrEl.value,
-      fts:      ftsEl.value,
-      sap:      sapEl.value,
-      comments: commentsEl.value.trim(),
-      output: buildOutput(),
+      lc:               lcEl.value,
+      nc:               ncEl.value,
+      status:           statusEl.value,
+      icm:              icmEl.value,
+      fqr:              fqrEl.value,
+      fts:              ftsEl.value,
+      sap:              sapEl.value,
+      comments:         commentsEl.value.trim(),
+      suggestedDfmStatus: suggestedStatus(),
+      output:           buildOutput(),
       savedAt: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
     };
   }
 
   /* ── Dedup key: all fields ── */
   function itgKey(s) {
-    return [s.lc, s.nc, s.status, s.icm, s.fqr, s.fts, s.sap, (s.comments||'').toLowerCase()].join('|||');
+    return [s.lc, s.nc, s.status, s.icm, s.fqr, s.fts, s.sap, (s.comments||'').toLowerCase(), (s.suggestedDfmStatus||'')].join('|||');
   }
 
   /* ── Save with dedup ── */
@@ -795,13 +831,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
   /* ── Restore state ── */
   function itgRestoreState(s) {
-    lcEl.value     = s.lc     || localDateStr(0);
-    ncEl.value     = s.nc     || nextWeekdayDateStr();
-    statusEl.value = s.status || statusEl.options[0].value;
-    icmEl.value    = s.icm    || 'No';
-    fqrEl.value    = s.fqr    || 'Yes';
-    ftsEl.value    = s.fts    || 'No';
-    sapEl.value      = s.sap      || 'Yes';
+    lcEl.value       = s.lc     || localDateStr(0);
+    ncEl.value       = s.nc     || localDateStr(1);
+    statusEl.value   = s.status || statusEl.options[0].value;
+    icmEl.value      = s.icm    || 'No';
+    fqrEl.value      = s.fqr    || 'Yes';
+    ftsEl.value      = s.fts    || 'No';
+    sapEl.value      = s.sap    || 'Yes';
     commentsEl.value = s.comments || '';
     updatePreview();
   }
@@ -809,7 +845,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   /* ── Reset to defaults ── */
   function itgClearFields() {
     lcEl.value     = localDateStr(0);
-    ncEl.value     = nextWeekdayDateStr();
+    ncEl.value     = localDateStr(1);
     statusEl.value = statusEl.options[0].value;
     icmEl.value    = 'No';
     fqrEl.value    = 'Yes';
@@ -833,6 +869,17 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       itgSaveToHistory(result => {
         if (result === 'merged') showToastITG('✅ Copied. 🔄 Duplicate found — updated in history.');
         else showToastITG('✅ Copied to clipboard!');
+      });
+      // Log to Excel via Power Automate
+      const itgS = itgCurrentState();
+      logClickToExcel({
+        tab:       'Internal Title Generator',
+        button:    'Copy to Clipboard',
+        timestamp: new Date().toISOString(),
+        date_local: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
+        status:    itgS.status,
+        suggested_dfm_status: itgS.suggestedDfmStatus,
+        output_snippet: itgS.output.slice(0, 120)
       });
     } catch {
       showToastITG('❌ Copy failed. Try again.', true);
@@ -891,6 +938,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             <div class="history-row"><span class="history-label">LC</span><span class="history-value">${fmtDate(item.lc)}</span></div>
             <div class="history-row"><span class="history-label">NC</span><span class="history-value">${fmtDate(item.nc)}</span></div>
             <div class="history-row"><span class="history-label">Status</span><span class="history-value">${item.status || '—'}</span></div>
+            ${item.suggestedDfmStatus ? `<div class="history-row"><span class="history-label">DfM Status</span><span class="history-value" style="color:#1a5e1a;font-weight:600">${item.suggestedDfmStatus}</span></div>` : ''}
             <div class="history-row"><span class="history-label">Output</span><span class="history-value" style="white-space:normal;font-size:11px;font-family:monospace">${item.output || '—'}</span></div>
             ${item.comments ? `<div class="history-row"><span class="history-label">Comments</span><span class="history-value">${item.comments}</span></div>` : ''}
           </div>`;
