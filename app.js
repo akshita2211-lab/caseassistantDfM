@@ -118,26 +118,6 @@ function showToast(id, msg, isError = false) {
   t._timer = setTimeout(() => t.classList.add('hidden'), 2600);
 }
 
-/* ── Power Automate click logger ────────────────────────
-   Paste your HTTP trigger URL below once Power Automate
-   is set up. Until then, logging is silently skipped.
-   ─────────────────────────────────────────────────────── */
-const POWER_AUTOMATE_URL = 'YOUR_POWER_AUTOMATE_HTTP_TRIGGER_URL_HERE';
-
-async function logClickToExcel(payload) {
-  if (!POWER_AUTOMATE_URL || POWER_AUTOMATE_URL.startsWith('YOUR_')) return;
-  try {
-    await fetch(POWER_AUTOMATE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      keepalive: true  // fires even if page navigates away
-    });
-  } catch (e) {
-    console.warn('Usage log failed (non-blocking):', e.message);
-  }
-}
-
 /* ══════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -367,16 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result === 'merged') showToast('toast', '✅ Copied. 🔄 Similar entry found — keeping latest in history.');
         else showToast('toast', '✅ Copied to clipboard!');
       });
-      // Log to Excel via Power Automate
-      logClickToExcel({
-        tab:       'Case Note / Email Generator',
-        button:    'Copy to Clipboard',
-        timestamp: new Date().toISOString(),
-        date_local: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
-        issue_snippet: htmlToPlainText(s.issue).slice(0, 80).trim() || '—',
-        pending_on:    pendingLabel(s),
-        next_contact:  s.date
-      });
     } catch (err) {
       console.error(err);
       showToast('toast', '❌ Copy failed. Try again.', true);
@@ -533,116 +503,6 @@ ${line('Regards')}
     showView('viewEmail');
   });
 
-  /* ══ AI EMAIL (Claude-powered) ══ */
-  document.getElementById('btnAIEmail').addEventListener('click', async () => {
-    if (!validate()) return;
-    const s = currentState();
-
-    // Extract plain text only — no images, no internal links
-    const issueText  = htmlToPlainText(s.issue).trim();
-    const actionText = htmlToPlainText(s.action).trim();
-    const planText   = htmlToPlainText(s.plan).trim();
-    const pending    = pendingLabel(s);
-    const date       = s.date;
-
-    // Show loading
-    const loadingEl  = document.getElementById('emailLoading');
-    const previewEl  = document.getElementById('emailPreview');
-    const aiBadge    = document.getElementById('emailAIBadge');
-    const aiBtn      = document.getElementById('btnAIEmail');
-
-    loadingEl.classList.remove('hidden');
-    previewEl.innerHTML = '';
-    previewEl._htmlContent = '';
-    aiBadge.classList.add('hidden');
-    aiBtn.disabled = true;
-    showView('viewEmail');
-
-    const systemPrompt = `You are an expert Microsoft Support engineer writing professional customer-facing case update emails.
-
-RULES — follow strictly:
-1. Write in clear, professional, empathetic English. Fix grammar, improve clarity.
-2. Address the customer as "you/your" — never "Cx", "customer", "client".
-3. Decide from context whether the case is heading toward closure or still active. If closing: include a warm closing statement. If still active: be clear about next steps.
-4. EXCLUDE completely:
-   - Screenshots, images, or attachments
-   - Internal Microsoft links (icm.ad, microsoft.com/teams, sharepoint, *.msft.net, aka.ms internal, etc.)
-   - Conversation transcripts or chat logs between engineers or with the customer
-   - Internal ticket references (IcM, ICM, ADO, FQR numbers unless stated as public)
-   - Any URLs that are not learn.microsoft.com
-5. INCLUDE as a "References" section at the end: ONLY links from learn.microsoft.com found in the content. If none, omit the References section entirely.
-6. Structure:
-   - Opening: "Hi," then a brief warm sentence
-   - Issue summary (1-2 sentences max, from the engineer's perspective rewritten for the customer)
-   - Action Taken section (professional, concise)
-   - If Next Action/Plan exists: Action Plan section, then "Next Action Owner: <owner>"
-   - Next Contact Date if provided and not NA/No/None
-   - Closing line
-   - "Regards"
-   - References section (only learn.microsoft.com links, if any)
-7. Output ONLY the email body as plain text. No subject line. No markdown. No extra commentary.`;
-
-    const userPrompt = `Write a professional customer-facing email update based on the following case notes:
-
-ISSUE:
-${issueText}
-
-ACTION TAKEN:
-${actionText}
-${planText ? `\nACTION PLAN / NEXT STEPS:\n${planText}` : ''}
-NEXT ACTION PENDING ON: ${pending}
-NEXT CONTACT DATE: ${date || 'Not specified'}`;
-
-    try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1000,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userPrompt }]
-        })
-      });
-
-      const data = await response.json();
-      const emailText = data?.content?.[0]?.text?.trim() || '';
-
-      if (!emailText) throw new Error('Empty response from AI');
-
-      // Convert plain text to styled HTML preserving paragraphs
-      // Bold underline lines that look like section headers (all caps or ending with :)
-      const emailHTML = `<div style="font-family:Segoe UI,Arial,sans-serif;color:#1e1e2e;line-height:1.7;max-width:680px;font-size:13px">` +
-        emailText.split('\n').map(line => {
-          const t = line.trim();
-          if (!t) return `<p style="margin:0 0 6px 0">&nbsp;</p>`;
-          // Detect section headers: lines ending with : or all-caps short lines
-          if (/^(Issue|Action Taken|Action Plan|Next Action Owner|Next Contact Date|References|Regards)[\s:]/i.test(t) || /^References:?$/.test(t)) {
-            return `<p style="margin:12px 0 3px 0;font-weight:700;text-decoration:underline;font-size:13px">${escapeHtml(t)}</p>`;
-          }
-          // learn.microsoft.com links → clickable
-          const linkedLine = escapeHtml(t).replace(
-            /https?:\/\/learn\.microsoft\.com\/[^\s<"']*/g,
-            url => `<a href="${url}" style="color:#0f6cbd">${url}</a>`
-          );
-          return `<p style="margin:0 0 6px 0">${linkedLine}</p>`;
-        }).join('') +
-        `</div>`;
-
-      previewEl.innerHTML = emailHTML;
-      previewEl._htmlContent = emailHTML;
-      aiBadge.classList.remove('hidden');
-
-    } catch (err) {
-      console.error('AI Email error:', err);
-      showToast('toastEmail', '❌ AI email failed. Check your connection and try again.', true);
-      showView('viewEmail');
-    } finally {
-      loadingEl.classList.add('hidden');
-      aiBtn.disabled = false;
-    }
-  });
-
   /* ══ COPY EMAIL ══ */
   document.getElementById('btnCopyEmail').addEventListener('click', async () => {
     const preview = document.getElementById('emailPreview');
@@ -797,19 +657,21 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   function localDateStr(offsetDays = 0) {
     const d = new Date();
     d.setDate(d.getDate() + offsetDays);
+    // Format as YYYY-MM-DD in LOCAL time (not UTC) for the date input
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
   }
 
-  // Next weekday after today: if tomorrow is Sat→Mon, Sun→Mon, else tomorrow
+  // Next weekday: Fri/Sat/Sun → Mon, otherwise tomorrow
   function nextWeekdayDateStr() {
     const d = new Date();
-    d.setDate(d.getDate() + 1); // start at tomorrow
-    const dow = d.getDay(); // 0=Sun,6=Sat
-    if (dow === 6) d.setDate(d.getDate() + 2); // Sat→Mon
-    if (dow === 0) d.setDate(d.getDate() + 1); // Sun→Mon
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay(); // 0=Sun, 5=Fri, 6=Sat
+    if (dow === 5) d.setDate(d.getDate() + 3);      // Fri → Mon
+    else if (dow === 6) d.setDate(d.getDate() + 2); // Sat → Mon
+    else if (dow === 0) d.setDate(d.getDate() + 1); // Sun → Mon
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -831,29 +693,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   const fqrEl      = document.getElementById('itg-fqr');
   const ftsEl      = document.getElementById('itg-fts');
   const sapEl      = document.getElementById('itg-sap');
-  const commentsEl      = document.getElementById('itg-comments');
-  const preview         = document.getElementById('itg-preview');
-  const suggestedEl     = document.getElementById('itg-suggested-status');
-
-  /* ── Suggested DfM Case Status mapping ── */
-  function suggestedStatus() {
-    const s = statusEl.value;
-    if (/^(troubleshooting|pending log analysis)$/i.test(s))
-      return 'Troubleshooting';
-    if (/^(pending closure confirmation|pending recovery|action plan shared|action plan provided)$/i.test(s))
-      return 'Waiting for Customer Confirmation';
-    if (/^pending pg$/i.test(s))
-      return 'Waiting for Product Team';
-    if (/^issue resolved, rca pending$/i.test(s))
-      return 'Mitigated';
-    if (/^(pending csa alignment|csa involved)$/i.test(s))
-      return 'Waiting for Customer Confirmation';
-    // Unresponsive cx, Pending cx to share..., anything else
-    return 'Pending Customer Response';
-  }
+  const commentsEl = document.getElementById('itg-comments');
+  const preview    = document.getElementById('itg-preview');
 
   /* ── Set defaults ── */
-  lcEl.value = localDateStr(0);        // today
+  lcEl.value = localDateStr(0);   // today
   ncEl.value = nextWeekdayDateStr();   // next weekday
 
   /* ── Build the output string ── */
@@ -873,7 +717,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   /* ── Live preview ── */
   function updatePreview() {
     preview.textContent = buildOutput();
-    suggestedEl.textContent = suggestedStatus();
   }
   [lcEl, ncEl, statusEl, icmEl, fqrEl, ftsEl, sapEl].forEach(el =>
     el.addEventListener('change', updatePreview)
@@ -912,23 +755,22 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   /* ── Current state ── */
   function itgCurrentState() {
     return {
-      lc:               lcEl.value,
-      nc:               ncEl.value,
-      status:           statusEl.value,
-      icm:              icmEl.value,
-      fqr:              fqrEl.value,
-      fts:              ftsEl.value,
-      sap:              sapEl.value,
-      comments:         commentsEl.value.trim(),
-      suggestedDfmStatus: suggestedStatus(),
-      output:           buildOutput(),
+      lc:     lcEl.value,
+      nc:     ncEl.value,
+      status: statusEl.value,
+      icm:      icmEl.value,
+      fqr:      fqrEl.value,
+      fts:      ftsEl.value,
+      sap:      sapEl.value,
+      comments: commentsEl.value.trim(),
+      output: buildOutput(),
       savedAt: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
     };
   }
 
   /* ── Dedup key: all fields ── */
   function itgKey(s) {
-    return [s.lc, s.nc, s.status, s.icm, s.fqr, s.fts, s.sap, (s.comments||'').toLowerCase(), (s.suggestedDfmStatus||'')].join('|||');
+    return [s.lc, s.nc, s.status, s.icm, s.fqr, s.fts, s.sap, (s.comments||'').toLowerCase()].join('|||');
   }
 
   /* ── Save with dedup ── */
@@ -953,13 +795,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
   /* ── Restore state ── */
   function itgRestoreState(s) {
-    lcEl.value       = s.lc     || localDateStr(0);
-    ncEl.value       = s.nc     || nextWeekdayDateStr();
-    statusEl.value   = s.status || statusEl.options[0].value;
-    icmEl.value      = s.icm    || 'No';
-    fqrEl.value      = s.fqr    || 'Yes';
-    ftsEl.value      = s.fts    || 'No';
-    sapEl.value      = s.sap    || 'Yes';
+    lcEl.value     = s.lc     || localDateStr(0);
+    ncEl.value     = s.nc     || nextWeekdayDateStr();
+    statusEl.value = s.status || statusEl.options[0].value;
+    icmEl.value    = s.icm    || 'No';
+    fqrEl.value    = s.fqr    || 'Yes';
+    ftsEl.value    = s.fts    || 'No';
+    sapEl.value      = s.sap      || 'Yes';
     commentsEl.value = s.comments || '';
     updatePreview();
   }
@@ -991,17 +833,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       itgSaveToHistory(result => {
         if (result === 'merged') showToastITG('✅ Copied. 🔄 Duplicate found — updated in history.');
         else showToastITG('✅ Copied to clipboard!');
-      });
-      // Log to Excel via Power Automate
-      const itgS = itgCurrentState();
-      logClickToExcel({
-        tab:       'Internal Title Generator',
-        button:    'Copy to Clipboard',
-        timestamp: new Date().toISOString(),
-        date_local: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
-        status:    itgS.status,
-        suggested_dfm_status: itgS.suggestedDfmStatus,
-        output_snippet: itgS.output.slice(0, 120)
       });
     } catch {
       showToastITG('❌ Copy failed. Try again.', true);
@@ -1060,7 +891,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             <div class="history-row"><span class="history-label">LC</span><span class="history-value">${fmtDate(item.lc)}</span></div>
             <div class="history-row"><span class="history-label">NC</span><span class="history-value">${fmtDate(item.nc)}</span></div>
             <div class="history-row"><span class="history-label">Status</span><span class="history-value">${item.status || '—'}</span></div>
-            ${item.suggestedDfmStatus ? `<div class="history-row"><span class="history-label">DfM Status</span><span class="history-value" style="color:#1a5e1a;font-weight:600">${item.suggestedDfmStatus}</span></div>` : ''}
             <div class="history-row"><span class="history-label">Output</span><span class="history-value" style="white-space:normal;font-size:11px;font-family:monospace">${item.output || '—'}</span></div>
             ${item.comments ? `<div class="history-row"><span class="history-label">Comments</span><span class="history-value">${item.comments}</span></div>` : ''}
           </div>`;

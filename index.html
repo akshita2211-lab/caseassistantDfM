@@ -125,10 +125,6 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
               Email
             </button>
-            <button id="btnAIEmail" class="btn btn-ai-email">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              ✨ AI Email
-            </button>
             <button id="btnSave" class="btn btn-save">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
               Save
@@ -164,11 +160,7 @@
             <button id="btnBackEmail" class="icon-btn" title="Back">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
-            <span class="tab-header-title">Generated Email <span id="emailAIBadge" class="ai-badge hidden">✨ AI</span></span>
-          </div>
-          <div id="emailLoading" class="email-loading hidden">
-            <div class="email-loading-spinner"></div>
-            <span>AI is writing your email…</span>
+            <span class="tab-header-title">Generated Email</span>
           </div>
           <div id="emailPreview" class="email-preview" contenteditable="true"></div>
           <div id="toastEmail" class="toast hidden"></div>
@@ -223,15 +215,11 @@
                   <option value="Pending log analysis">Pending log analysis</option>
                   <option value="Action plan provided">Action plan provided</option>
                   <option value="Pending cx to share information requested">Pending cx to share information requested</option>
-                  <option value="Unresponsive cx">Unresponsive cx</option>
-                  <option value="Unresponsive cx, CSAM/IM involved">Unresponsive cx, CSAM/IM involved</option>
-                  <option value="Issue resolved, RCA pending">Issue resolved, RCA pending</option>
+                  <option value="Unresponsive cx, CSAM/IM involved">Unresponsive cx CSAM/IM involved</option>
+                  <option value="Issue resolved, RCA pending">Issue resolved RCA pending</option>
                   <option value="Pending PG">Pending PG</option>
                   <option value="Pending closure confirmation">Pending closure confirmation</option>
                   <option value="Pending recovery">Pending recovery</option>
-                  <option value="Action plan shared">Action plan shared</option>
-                  <option value="Pending CSA alignment">Pending CSA alignment</option>
-                  <option value="CSA involved">CSA involved</option>
                 </select>
                 <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
@@ -284,12 +272,6 @@
             <div class="field-group">
               <label>Comments <span class="opt">(optional)</span></label>
               <textarea id="itg-comments" class="itg-textarea" placeholder="Any additional comments…" rows="2"></textarea>
-            </div>
-
-            <!-- Suggested DfM Case Status -->
-            <div class="itg-preview-wrap">
-              <label>Suggested DfM Case Status</label>
-              <div id="itg-suggested-status" class="itg-preview itg-suggested"></div>
             </div>
 
             <!-- Preview strip -->
