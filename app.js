@@ -714,7 +714,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     const fts    = ftsEl.value;
     const sap    = sapEl.value;
     const comments = commentsEl.value.trim();
-    const base = `LC: ${lc} | NC: ${nc} | Status: ${status} | IsFQR: ${fqr} | IsIcM: ${icm} | IsFTSfromotherregion: ${fts} | IsSAPCorrect: ${sap}`;
+    const base = `LC: ${lc} | NC: ${nc} | Status: ${status} | IsFQR: ${fqr} | IsIcM: ${icm} | IsFTSfromotherregion: ${fts} | IsSAPCorrect: ${sap} (ITG)`;
     return comments ? `${base} | Comments: ${comments}` : base;
   }
 
