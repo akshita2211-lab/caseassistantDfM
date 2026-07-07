@@ -800,6 +800,22 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   lcEl.value = localDateStr(0);   // today
   ncEl.value = nextWeekdayDateStr();   // next weekday
 
+function suggestedStatus() {
+    const s = statusEl.value;
+    if (/^(troubleshooting|pending log analysis)$/i.test(s))
+      return 'Troubleshooting';
+    if (/^(pending closure confirmation|pending recovery|action plan shared)$/i.test(s))
+      return 'Waiting for Customer Confirmation';
+    if (/^(pending pg||action plan provided by pg)$/i.test(s))
+      return 'Waiting for Product Team';
+    if (/^issue resolved, rca pending$/i.test(s))
+      return 'Mitigated';
+    if (/^(pending csa alignment|csa involved)$/i.test(s))
+      return 'Waiting for Customer Confirmation';
+    // Unresponsive cx, Pending cx to share..., anything else
+    return 'Pending Customer Response';
+  }
+
   /* ── Build the output string ── */
   function buildOutput() {
     const lc     = fmtDate(lcEl.value);
@@ -813,6 +829,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     const base = `LC: ${lc} | NC: ${nc} | Status: ${status} | IsFQR: ${fqr} | IsIcM: ${icm} | IsFTSfromotherregion: ${fts} | IsSAPCorrect: ${sap}`;
     return comments ? `${base} | Comments: ${comments}` : base;
   }
+
+   
 
   /* ── Live preview ── */
   function updatePreview() {
