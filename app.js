@@ -251,20 +251,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateEmpty = !dateEl.innerText.trim();
     setError('err-nextdate', 'wrap-nextdate', dateEmpty); if (dateEmpty) ok = false;
 
-    // Business Impact
-    const biFields = [
-      ['bi-users',     biUsers,     'err-bi-users'],
-      ['bi-financial', biFinancial, 'err-bi-financial'],
-      ['bi-deadline',  biDeadline,  'err-bi-deadline'],
-      ['bi-client',    biClient,    'err-bi-client'],
-      ['bi-firsttime', biFirsttime, 'err-bi-firsttime'],
-    ];
-    for (const [, el, errId] of biFields) {
-      if (!el.value) { setError(errId, null, true); el.classList.add('error'); ok = false; }
-      else           { setError(errId, null, false); el.classList.remove('error'); }
-    }
+    // Financial Risk specify — only validate if Yes selected
     if (biFinancial.value === 'Yes' && !biFinDetail.value.trim()) {
       setError('err-bi-financial-detail', null, true); biFinDetail.classList.add('error'); ok = false;
+    } else {
+      setError('err-bi-financial-detail', null, false); biFinDetail.classList.remove('error');
     }
 
     return ok;
@@ -304,8 +295,8 @@ document.addEventListener('DOMContentLoaded', () => {
     othersW.classList.add('hidden'); othersEl.value = ''; othersEl.classList.remove('error');
     ['err-issue','err-action','err-pending','err-others','err-nextdate'].forEach(id => document.getElementById(id).classList.add('hidden'));
     ['wrap-issue','wrap-action','wrap-nextdate'].forEach(id => document.getElementById(id).classList.remove('error'));
-    // Business Impact
-    biUsers.value = ''; biFinancial.value = ''; biDeadline.value = ''; biClient.value = ''; biFirsttime.value = '';
+    // Business Impact — reset to defaults
+    biUsers.value = '≤10'; biFinancial.value = 'No'; biDeadline.value = 'No'; biClient.value = 'No'; biFirsttime.value = 'No';
     biFinDetail.value = ''; biComments.value = '';
     biFinWrap.classList.add('hidden');
     [biUsers, biFinancial, biDeadline, biClient, biFirsttime, biFinDetail].forEach(el => el.classList.remove('error'));
@@ -323,14 +314,14 @@ document.addEventListener('DOMContentLoaded', () => {
     othersW.classList.toggle('hidden', s.pending !== 'Others');
     // Business Impact
     const bi = s.bi || {};
-    biUsers.value     = bi.users     || '';
-    biFinancial.value = bi.financial || '';
+    biUsers.value     = bi.users     || '≤10';
+    biFinancial.value = bi.financial || 'No';
     biFinDetail.value = bi.financialDetail || '';
-    biDeadline.value  = bi.deadline  || '';
-    biClient.value    = bi.client    || '';
-    biFirsttime.value = bi.firsttime || '';
+    biDeadline.value  = bi.deadline  || 'No';
+    biClient.value    = bi.client    || 'No';
+    biFirsttime.value = bi.firsttime || 'No';
     biComments.value  = bi.comments  || '';
-    biFinWrap.classList.toggle('hidden', bi.financial !== 'Yes');
+    biFinWrap.classList.toggle('hidden', (bi.financial || 'No') !== 'Yes');
   }
 
   /* ══ SAVE (explicit + dedupe across ALL fields — only merges on exact match) ══ */
@@ -405,17 +396,28 @@ document.addEventListener('DOMContentLoaded', () => {
       ['Issue',                    issueResized],
       ['Action Taken',             actionResized],
     ];
-    // Business Impact
+    // Business Impact — only include if user changed anything from defaults
     const bi = s.bi || {};
-    const biSummary = [
-      `Users Impacted: ${bi.users || '—'}`,
-      `Financial Risk: ${bi.financial || '—'}${bi.financial === 'Yes' && bi.financialDetail ? ` (${bi.financialDetail})` : ''}`,
-      `Deadline at Risk: ${bi.deadline || '—'}`,
-      `Client Acquisition/Project Loss Risk: ${bi.client || '—'}`,
-      `First Time Implementation: ${bi.firsttime || '—'}`,
-      bi.comments ? `Comments: ${bi.comments}` : '',
-    ].filter(Boolean).join('\n');
-    rows.push(['Business Impact', escapeHtml(biSummary)]);
+    const biIsDefault = (
+      bi.users     === '≤10' &&
+      bi.financial === 'No'  &&
+      bi.deadline  === 'No'  &&
+      bi.client    === 'No'  &&
+      bi.firsttime === 'No'  &&
+      !bi.financialDetail    &&
+      !bi.comments
+    );
+    if (!biIsDefault) {
+      const biSummary = [
+        `Users Impacted: ${bi.users || '—'}`,
+        `Financial Risk: ${bi.financial || '—'}${bi.financial === 'Yes' && bi.financialDetail ? ` (${bi.financialDetail})` : ''}`,
+        `Deadline at Risk: ${bi.deadline || '—'}`,
+        `Client Acquisition/Project Loss Risk: ${bi.client || '—'}`,
+        `First Time Implementation: ${bi.firsttime || '—'}`,
+        bi.comments ? `Comments: ${bi.comments}` : '',
+      ].filter(Boolean).join('\n');
+      rows.push(['Business Impact', escapeHtml(biSummary)]);
+    }
     if (!planEmpty) rows.push(['Next Action / Action Plan', planResized]);
     rows.push(
       ['Next Action Pending On',   escapeHtml(pendingLabel(s))],
