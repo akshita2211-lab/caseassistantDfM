@@ -53,13 +53,32 @@ function htmlToPlainText(html) {
   return tmp.textContent || '';
 }
 
+/* ── Word-wrap helper: insert <wbr> every 15 words in plain-text runs ── */
+function wrapLongText(html) {
+  // Only process text nodes inside the html, leave tags intact
+  return html.replace(/>([\s\S]*?)</g, (match, text) => {
+    if (!text.trim()) return match;
+    const wrapped = text.split('\n').map(line => {
+      const words = line.split(/(\s+)/);
+      let count = 0;
+      return words.map(chunk => {
+        if (/\S/.test(chunk)) count++;
+        if (count > 0 && count % 15 === 0 && /\S/.test(chunk)) return chunk + '<wbr>';
+        return chunk;
+      }).join('');
+    }).join('\n');
+    return '>' + wrapped + '<';
+  });
+}
+
 function buildHTMLTable(rows) {
-  const base = 'border:1px solid #ccc;padding:6px 10px;vertical-align:top;word-break:break-word;';
-  const th = base + 'background:#f0f4fa;font-weight:700;white-space:nowrap;';
+  const base = 'border:1px solid #ccc;padding:6px 10px;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;max-width:600px;';
+  const th = base + 'background:#f0f4fa;font-weight:700;white-space:nowrap;max-width:180px;';
   const td = base + 'white-space:pre-wrap;';
-  let html = '<table style="border-collapse:collapse;table-layout:auto;font-family:Segoe UI,Arial,sans-serif;font-size:13px;">';
+  let html = '<table style="border-collapse:collapse;table-layout:fixed;width:100%;font-family:Segoe UI,Arial,sans-serif;font-size:13px;">';
   for (const [label, content] of rows) {
-    html += `<tr><td style="${th}">${escapeHtml(label)}</td><td style="${td}">${content || '<em style="color:#aaa">—</em>'}</td></tr>`;
+    const safeContent = content ? wrapLongText(content) : '<em style="color:#aaa">—</em>';
+    html += `<tr><td style="${th}">${escapeHtml(label)}</td><td style="${td}">${safeContent}</td></tr>`;
   }
   return html + '</table>';
 }
@@ -118,26 +137,6 @@ function showToast(id, msg, isError = false) {
   t._timer = setTimeout(() => t.classList.add('hidden'), 2600);
 }
 
-/* ── Power Automate click logger ────────────────────────
-   Paste your HTTP trigger URL below once Power Automate
-   is set up. Until then, logging is silently skipped.
-   ─────────────────────────────────────────────────────── */
-const POWER_AUTOMATE_URL = 'YOUR_POWER_AUTOMATE_HTTP_TRIGGER_URL_HERE';
-
-async function logClickToExcel(payload) {
-  if (!POWER_AUTOMATE_URL || POWER_AUTOMATE_URL.startsWith('YOUR_')) return;
-  try {
-    await fetch(POWER_AUTOMATE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      keepalive: true  // fires even if page navigates away
-    });
-  } catch (e) {
-    console.warn('Usage log failed (non-blocking):', e.message);
-  }
-}
-
 /* ══════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -149,6 +148,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const othersW   = document.getElementById('othersWrap');
   const othersEl  = document.getElementById('othersText');
   const dateEl    = document.getElementById('nextdate');
+
+  // Business Impact refs
+  const biUsers     = document.getElementById('bi-users');
+  const biFinancial = document.getElementById('bi-financial');
+  const biFinWrap   = document.getElementById('bi-financial-wrap');
+  const biFinDetail = document.getElementById('bi-financial-detail');
+  const biDeadline  = document.getElementById('bi-deadline');
+  const biClient    = document.getElementById('bi-client');
+  const biFirsttime = document.getElementById('bi-firsttime');
+  const biComments  = document.getElementById('bi-comments');
 
   /* ── Views ── */
   function showView(id) {
@@ -214,6 +223,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   othersEl.addEventListener('input', () => { othersEl.classList.remove('error'); setError('err-others', null, false); });
 
+  /* ── Financial Risk → show specify ── */
+  biFinancial.addEventListener('change', () => {
+    biFinWrap.classList.toggle('hidden', biFinancial.value !== 'Yes');
+    if (biFinancial.value !== 'Yes') { biFinDetail.value = ''; biFinDetail.classList.remove('error'); setError('err-bi-financial-detail', null, false); }
+    biFinancial.classList.remove('error'); setError('err-bi-financial', null, false);
+  });
+  [biUsers, biDeadline, biClient, biFirsttime].forEach(el => {
+    el.addEventListener('change', () => { el.classList.remove('error'); setError(`err-bi-${el.id.replace('bi-','').replace('-','').replace('firsttime','firsttime')}`, null, false); });
+  });
+
   /* ── Validation ── */
   function validate() {
     let ok = true;
@@ -231,6 +250,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const dateEmpty = !dateEl.innerText.trim();
     setError('err-nextdate', 'wrap-nextdate', dateEmpty); if (dateEmpty) ok = false;
+
+    // Business Impact
+    const biFields = [
+      ['bi-users',     biUsers,     'err-bi-users'],
+      ['bi-financial', biFinancial, 'err-bi-financial'],
+      ['bi-deadline',  biDeadline,  'err-bi-deadline'],
+      ['bi-client',    biClient,    'err-bi-client'],
+      ['bi-firsttime', biFirsttime, 'err-bi-firsttime'],
+    ];
+    for (const [, el, errId] of biFields) {
+      if (!el.value) { setError(errId, null, true); el.classList.add('error'); ok = false; }
+      else           { setError(errId, null, false); el.classList.remove('error'); }
+    }
+    if (biFinancial.value === 'Yes' && !biFinDetail.value.trim()) {
+      setError('err-bi-financial-detail', null, true); biFinDetail.classList.add('error'); ok = false;
+    }
+
     return ok;
   }
 
@@ -243,6 +279,15 @@ document.addEventListener('DOMContentLoaded', () => {
       pending:  selectEl.value,
       others:   othersEl.value.trim(),
       date:     dateEl.innerText.trim(),
+      bi: {
+        users:         biUsers.value,
+        financial:     biFinancial.value,
+        financialDetail: biFinDetail.value.trim(),
+        deadline:      biDeadline.value,
+        client:        biClient.value,
+        firsttime:     biFirsttime.value,
+        comments:      biComments.value.trim(),
+      },
       savedAt:  new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
     };
   }
@@ -259,6 +304,12 @@ document.addEventListener('DOMContentLoaded', () => {
     othersW.classList.add('hidden'); othersEl.value = ''; othersEl.classList.remove('error');
     ['err-issue','err-action','err-pending','err-others','err-nextdate'].forEach(id => document.getElementById(id).classList.add('hidden'));
     ['wrap-issue','wrap-action','wrap-nextdate'].forEach(id => document.getElementById(id).classList.remove('error'));
+    // Business Impact
+    biUsers.value = ''; biFinancial.value = ''; biDeadline.value = ''; biClient.value = ''; biFirsttime.value = '';
+    biFinDetail.value = ''; biComments.value = '';
+    biFinWrap.classList.add('hidden');
+    [biUsers, biFinancial, biDeadline, biClient, biFirsttime, biFinDetail].forEach(el => el.classList.remove('error'));
+    ['err-bi-users','err-bi-financial','err-bi-deadline','err-bi-client','err-bi-firsttime','err-bi-financial-detail'].forEach(id => document.getElementById(id).classList.add('hidden'));
   }
 
   /* ── Restore state into fields ── */
@@ -270,11 +321,22 @@ document.addEventListener('DOMContentLoaded', () => {
     othersEl.value     = s.others  || '';
     dateEl.innerHTML   = s.date    || '';
     othersW.classList.toggle('hidden', s.pending !== 'Others');
+    // Business Impact
+    const bi = s.bi || {};
+    biUsers.value     = bi.users     || '';
+    biFinancial.value = bi.financial || '';
+    biFinDetail.value = bi.financialDetail || '';
+    biDeadline.value  = bi.deadline  || '';
+    biClient.value    = bi.client    || '';
+    biFirsttime.value = bi.firsttime || '';
+    biComments.value  = bi.comments  || '';
+    biFinWrap.classList.toggle('hidden', bi.financial !== 'Yes');
   }
 
   /* ══ SAVE (explicit + dedupe across ALL fields — only merges on exact match) ══ */
   function entryKey(s) {
     const norm = (html) => htmlToPlainText(html || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const bi = s.bi || {};
     return [
       norm(s.issue),
       norm(s.action),
@@ -282,6 +344,8 @@ document.addEventListener('DOMContentLoaded', () => {
       (s.pending || '').trim().toLowerCase(),
       (s.others  || '').trim().toLowerCase(),
       (s.date    || '').trim().toLowerCase(),
+      bi.users || '', bi.financial || '', bi.financialDetail || '',
+      bi.deadline || '', bi.client || '', bi.firsttime || '', bi.comments || '',
     ].join('|||');
   }
 
@@ -341,6 +405,17 @@ document.addEventListener('DOMContentLoaded', () => {
       ['Issue',                    issueResized],
       ['Action Taken',             actionResized],
     ];
+    // Business Impact
+    const bi = s.bi || {};
+    const biSummary = [
+      `Users Impacted: ${bi.users || '—'}`,
+      `Financial Risk: ${bi.financial || '—'}${bi.financial === 'Yes' && bi.financialDetail ? ` (${bi.financialDetail})` : ''}`,
+      `Deadline at Risk: ${bi.deadline || '—'}`,
+      `Client Acquisition/Project Loss Risk: ${bi.client || '—'}`,
+      `First Time Implementation: ${bi.firsttime || '—'}`,
+      bi.comments ? `Comments: ${bi.comments}` : '',
+    ].filter(Boolean).join('\n');
+    rows.push(['Business Impact', escapeHtml(biSummary)]);
     if (!planEmpty) rows.push(['Next Action / Action Plan', planResized]);
     rows.push(
       ['Next Action Pending On',   escapeHtml(pendingLabel(s))],
@@ -366,16 +441,6 @@ document.addEventListener('DOMContentLoaded', () => {
       saveCurrentToHistory(result => {
         if (result === 'merged') showToast('toast', '✅ Copied. 🔄 Similar entry found — keeping latest in history.');
         else showToast('toast', '✅ Copied to clipboard!');
-      });
-      // Log to Excel via Power Automate
-      logClickToExcel({
-        tab:       'Case Note / Email Generator',
-        button:    'Copy to Clipboard',
-        timestamp: new Date().toISOString(),
-        date_local: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
-        issue_snippet: htmlToPlainText(s.issue).slice(0, 80).trim() || '—',
-        pending_on:    pendingLabel(s),
-        next_contact:  s.date
       });
     } catch (err) {
       console.error(err);
@@ -605,6 +670,8 @@ ${line('Regards')}
         const snippetIssue  = htmlToPlainText(item.issue  || '').slice(0, 70) || '—';
         const snippetAction = htmlToPlainText(item.action || '').slice(0, 70) || '—';
         const snippetPlan   = htmlToPlainText(item.plan   || '').slice(0, 70);
+        const bi = item.bi || {};
+        const biSnippet = bi.users ? `${bi.users} users · Financial: ${bi.financial || '—'} · Deadline: ${bi.deadline || '—'}` : '';
 
         // Highlight matched query in issue snippet
         function highlight(text) {
@@ -627,6 +694,7 @@ ${line('Regards')}
           </div>
           <div class="history-card-body">
             <div class="history-row"><span class="history-label">Issue</span><span class="history-value">${highlight(snippetIssue)}${item.issue && item.issue.length > 70 ? '…' : ''}</span></div>
+            ${biSnippet ? `<div class="history-row"><span class="history-label">Impact</span><span class="history-value">${escapeHtml(biSnippet)}</span></div>` : ''}
             <div class="history-row"><span class="history-label">Action</span><span class="history-value">${escapeHtml(snippetAction)}${item.action && item.action.length > 70 ? '…' : ''}</span></div>
             ${snippetPlan ? `<div class="history-row"><span class="history-label">Plan</span><span class="history-value">${escapeHtml(snippetPlan)}${item.plan && item.plan.length > 70 ? '…' : ''}</span></div>` : ''}
             <div class="history-row"><span class="history-label">Pending</span><span class="history-value">${escapeHtml(pendingLabel(item) || '—')}</span></div>
@@ -694,6 +762,20 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     return `${y}-${m}-${day}`;
   }
 
+  // Next weekday: Fri/Sat/Sun → Mon, otherwise tomorrow
+  function nextWeekdayDateStr() {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay(); // 0=Sun, 5=Fri, 6=Sat
+    if (dow === 5) d.setDate(d.getDate() + 3);      // Fri → Mon
+    else if (dow === 6) d.setDate(d.getDate() + 2); // Sat → Mon
+    else if (dow === 0) d.setDate(d.getDate() + 1); // Sun → Mon
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
   // Format a YYYY-MM-DD string as MM/DD/YY
   function fmtDate(iso) {
     if (!iso) return '';
@@ -709,30 +791,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   const fqrEl      = document.getElementById('itg-fqr');
   const ftsEl      = document.getElementById('itg-fts');
   const sapEl      = document.getElementById('itg-sap');
-  const commentsEl      = document.getElementById('itg-comments');
-  const preview         = document.getElementById('itg-preview');
-  const suggestedEl     = document.getElementById('itg-suggested-status');
-
-  /* ── Suggested DfM Case Status mapping ── */
-  function suggestedStatus() {
-    const s = statusEl.value;
-    if (/^(troubleshooting|pending log analysis)$/i.test(s))
-      return 'Troubleshooting';
-    if (/^(pending closure confirmation|pending recovery|action plan shared)$/i.test(s))
-      return 'Waiting for Customer Confirmation';
-    if (/^pending pg|action plan provided by pg|pending bug fix|pending cx to share information requested by pg$/i.test(s))
-      return 'Waiting for Product Team';
-    if (/^issue resolved, rca pending$/i.test(s))
-      return 'Mitigated';
-    if (/^(pending csa alignment|csa involved)$/i.test(s))
-      return 'Waiting for Customer Confirmation';
-    // Unresponsive cx, Pending cx to share..., anything else
-    return 'Pending Customer Response';
-  }
+  const commentsEl = document.getElementById('itg-comments');
+  const preview    = document.getElementById('itg-preview');
 
   /* ── Set defaults ── */
   lcEl.value = localDateStr(0);   // today
-  ncEl.value = localDateStr(1);   // tomorrow
+  ncEl.value = nextWeekdayDateStr();   // next weekday
 
   /* ── Build the output string ── */
   function buildOutput() {
@@ -751,7 +815,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   /* ── Live preview ── */
   function updatePreview() {
     preview.textContent = buildOutput();
-    suggestedEl.textContent = suggestedStatus();
   }
   [lcEl, ncEl, statusEl, icmEl, fqrEl, ftsEl, sapEl].forEach(el =>
     el.addEventListener('change', updatePreview)
@@ -790,23 +853,22 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   /* ── Current state ── */
   function itgCurrentState() {
     return {
-      lc:               lcEl.value,
-      nc:               ncEl.value,
-      status:           statusEl.value,
-      icm:              icmEl.value,
-      fqr:              fqrEl.value,
-      fts:              ftsEl.value,
-      sap:              sapEl.value,
-      comments:         commentsEl.value.trim(),
-      suggestedDfmStatus: suggestedStatus(),
-      output:           buildOutput(),
+      lc:     lcEl.value,
+      nc:     ncEl.value,
+      status: statusEl.value,
+      icm:      icmEl.value,
+      fqr:      fqrEl.value,
+      fts:      ftsEl.value,
+      sap:      sapEl.value,
+      comments: commentsEl.value.trim(),
+      output: buildOutput(),
       savedAt: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
     };
   }
 
   /* ── Dedup key: all fields ── */
   function itgKey(s) {
-    return [s.lc, s.nc, s.status, s.icm, s.fqr, s.fts, s.sap, (s.comments||'').toLowerCase(), (s.suggestedDfmStatus||'')].join('|||');
+    return [s.lc, s.nc, s.status, s.icm, s.fqr, s.fts, s.sap, (s.comments||'').toLowerCase()].join('|||');
   }
 
   /* ── Save with dedup ── */
@@ -831,13 +893,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
   /* ── Restore state ── */
   function itgRestoreState(s) {
-    lcEl.value       = s.lc     || localDateStr(0);
-    ncEl.value       = s.nc     || localDateStr(1);
-    statusEl.value   = s.status || statusEl.options[0].value;
-    icmEl.value      = s.icm    || 'No';
-    fqrEl.value      = s.fqr    || 'Yes';
-    ftsEl.value      = s.fts    || 'No';
-    sapEl.value      = s.sap    || 'Yes';
+    lcEl.value     = s.lc     || localDateStr(0);
+    ncEl.value     = s.nc     || nextWeekdayDateStr();
+    statusEl.value = s.status || statusEl.options[0].value;
+    icmEl.value    = s.icm    || 'No';
+    fqrEl.value    = s.fqr    || 'Yes';
+    ftsEl.value    = s.fts    || 'No';
+    sapEl.value      = s.sap      || 'Yes';
     commentsEl.value = s.comments || '';
     updatePreview();
   }
@@ -845,7 +907,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   /* ── Reset to defaults ── */
   function itgClearFields() {
     lcEl.value     = localDateStr(0);
-    ncEl.value     = localDateStr(1);
+    ncEl.value     = nextWeekdayDateStr();
     statusEl.value = statusEl.options[0].value;
     icmEl.value    = 'No';
     fqrEl.value    = 'Yes';
@@ -869,17 +931,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       itgSaveToHistory(result => {
         if (result === 'merged') showToastITG('✅ Copied. 🔄 Duplicate found — updated in history.');
         else showToastITG('✅ Copied to clipboard!');
-      });
-      // Log to Excel via Power Automate
-      const itgS = itgCurrentState();
-      logClickToExcel({
-        tab:       'Internal Title Generator',
-        button:    'Copy to Clipboard',
-        timestamp: new Date().toISOString(),
-        date_local: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
-        status:    itgS.status,
-        suggested_dfm_status: itgS.suggestedDfmStatus,
-        output_snippet: itgS.output.slice(0, 120)
       });
     } catch {
       showToastITG('❌ Copy failed. Try again.', true);
@@ -938,7 +989,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             <div class="history-row"><span class="history-label">LC</span><span class="history-value">${fmtDate(item.lc)}</span></div>
             <div class="history-row"><span class="history-label">NC</span><span class="history-value">${fmtDate(item.nc)}</span></div>
             <div class="history-row"><span class="history-label">Status</span><span class="history-value">${item.status || '—'}</span></div>
-            ${item.suggestedDfmStatus ? `<div class="history-row"><span class="history-label">DfM Status</span><span class="history-value" style="color:#1a5e1a;font-weight:600">${item.suggestedDfmStatus}</span></div>` : ''}
             <div class="history-row"><span class="history-label">Output</span><span class="history-value" style="white-space:normal;font-size:11px;font-family:monospace">${item.output || '—'}</span></div>
             ${item.comments ? `<div class="history-row"><span class="history-label">Comments</span><span class="history-value">${item.comments}</span></div>` : ''}
           </div>`;

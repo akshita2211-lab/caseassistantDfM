@@ -51,6 +51,93 @@
               <div class="field-error hidden" id="err-issue">This field is required.</div>
             </div>
 
+            <!-- BUSINESS IMPACT -->
+            <div class="field-group">
+              <label class="section-label">📊 Business Impact</label>
+              <div class="impact-grid">
+
+                <div class="field-group">
+                  <label>Users Impacted <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select id="bi-users" class="dropdown">
+                      <option value="">— Select —</option>
+                      <option value="≤10">≤10</option>
+                      <option value="11–50">11–50</option>
+                      <option value="51–100">51–100</option>
+                      <option value="100+">100+</option>
+                      <option value="1000+">1000+</option>
+                      <option value="Entire organization">Entire organization</option>
+                    </select>
+                    <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                  <div class="field-error hidden" id="err-bi-users">This field is required.</div>
+                </div>
+
+                <div class="field-group">
+                  <label>Financial Risk <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select id="bi-financial" class="dropdown">
+                      <option value="">— Select —</option>
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                    <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                  <div class="field-error hidden" id="err-bi-financial">This field is required.</div>
+                  <div id="bi-financial-wrap" class="others-wrap hidden">
+                    <input type="text" id="bi-financial-detail" class="others-input" placeholder="Please specify…" />
+                    <div class="field-error hidden" id="err-bi-financial-detail">Please specify.</div>
+                  </div>
+                </div>
+
+                <div class="field-group">
+                  <label>Deadline at Risk <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select id="bi-deadline" class="dropdown">
+                      <option value="">— Select —</option>
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                    <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                  <div class="field-error hidden" id="err-bi-deadline">This field is required.</div>
+                </div>
+
+                <div class="field-group">
+                  <label>Client Acquisition / Project Loss Risk <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select id="bi-client" class="dropdown">
+                      <option value="">— Select —</option>
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                    <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                  <div class="field-error hidden" id="err-bi-client">This field is required.</div>
+                </div>
+
+                <div class="field-group">
+                  <label>First Time Implementation <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select id="bi-firsttime" class="dropdown">
+                      <option value="">— Select —</option>
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                    <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                  <div class="field-error hidden" id="err-bi-firsttime">This field is required.</div>
+                </div>
+
+                <div class="field-group" style="grid-column:1/-1">
+                  <label>Additional Comments <span class="opt">(optional)</span></label>
+                  <textarea id="bi-comments" class="itg-textarea" placeholder="Any additional context…" rows="2"></textarea>
+                </div>
+
+              </div><!-- /impact-grid -->
+
+            </div><!-- /business impact -->
+
             <div class="field-group">
               <label>Action Taken <span class="req">*</span></label>
               <div class="editor-wrap" id="wrap-action">
@@ -213,19 +300,13 @@
                 <select id="itg-status" class="dropdown">
                   <option value="Troubleshooting">Troubleshooting</option>
                   <option value="Pending log analysis">Pending log analysis</option>
-                  <option value="Action plan provided by PG">Action plan provided by PG</option>
+                  <option value="Action plan provided">Action plan provided</option>
                   <option value="Pending cx to share information requested">Pending cx to share information requested</option>
-                  <option value="Pending cx to share information requested by PG">Pending cx to share information requested by PG</option>
-                  <option value="Pending bug fix">Pending bug fix</option>
-                  <option value="Unresponsive cx">Unresponsive cx</option>
-                  <option value="Unresponsive cx, CSAM/IM involved">Unresponsive cx, CSAM/IM involved</option>
-                  <option value="Issue resolved, RCA pending">Issue resolved, RCA pending</option>
+                  <option value="Unresponsive cx, CSAM/IM involved">Unresponsive cx CSAM/IM involved</option>
+                  <option value="Issue resolved, RCA pending">Issue resolved RCA pending</option>
                   <option value="Pending PG">Pending PG</option>
                   <option value="Pending closure confirmation">Pending closure confirmation</option>
                   <option value="Pending recovery">Pending recovery</option>
-                  <option value="Action plan shared">Action plan shared</option>
-                  <option value="Pending CSA alignment">Pending CSA alignment</option>
-                  <option value="CSA involved">CSA involved</option>
                 </select>
                 <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
@@ -278,12 +359,6 @@
             <div class="field-group">
               <label>Comments <span class="opt">(optional)</span></label>
               <textarea id="itg-comments" class="itg-textarea" placeholder="Any additional comments…" rows="2"></textarea>
-            </div>
-
-            <!-- Suggested DfM Case Status -->
-            <div class="itg-preview-wrap">
-              <label>Suggested DfM Case Status</label>
-              <div id="itg-suggested-status" class="itg-preview itg-suggested"></div>
             </div>
 
             <!-- Preview strip -->

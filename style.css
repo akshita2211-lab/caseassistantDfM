@@ -517,12 +517,25 @@ label {
 }
 .history-search::placeholder { color: #b0b8d0; }
 
-/* ── Suggested DfM status ── */
-.itg-suggested {
-  background: #eef6ee;
-  border-color: #a8d5a8;
-  color: #1a5e1a;
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  font-weight: 600;
-  letter-spacing: normal;
+/* ── Business Impact ── */
+.section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--blue);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-bottom: 6px;
+  display: block;
+}
+.impact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  background: #f8f9fd;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  padding: 12px;
+}
+@media (max-width: 520px) {
+  .impact-grid { grid-template-columns: 1fr; }
 }
