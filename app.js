@@ -795,6 +795,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   const sapEl      = document.getElementById('itg-sap');
   const commentsEl = document.getElementById('itg-comments');
   const preview    = document.getElementById('itg-preview');
+  const suggestedEl     = document.getElementById('itg-suggested-status');
 
   /* ── Set defaults ── */
   lcEl.value = localDateStr(0);   // today
