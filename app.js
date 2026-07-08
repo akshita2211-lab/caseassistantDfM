@@ -263,6 +263,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ── Collect current state ── */
   function currentState() {
+    const bi = {
+      users:           biUsers.value,
+      financial:       biFinancial.value,
+      financialDetail: biFinDetail.value.trim(),
+      deadline:        biDeadline.value,
+      client:          biClient.value,
+      firsttime:       biFirsttime.value,
+      comments:        biComments.value.trim(),
+    };
+    const biIsDefault = (
+      bi.users     === '≤10' &&
+      bi.financial === 'No'  &&
+      bi.deadline  === 'No'  &&
+      bi.client    === 'No'  &&
+      bi.firsttime === 'No'  &&
+      !bi.financialDetail    &&
+      !bi.comments
+    );
     return {
       issue:    getEditorHTML(issueEl),
       action:   getEditorHTML(actionEl),
@@ -270,15 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
       pending:  selectEl.value,
       others:   othersEl.value.trim(),
       date:     dateEl.innerText.trim(),
-      bi: {
-        users:         biUsers.value,
-        financial:     biFinancial.value,
-        financialDetail: biFinDetail.value.trim(),
-        deadline:      biDeadline.value,
-        client:        biClient.value,
-        firsttime:     biFirsttime.value,
-        comments:      biComments.value.trim(),
-      },
+      bi:       biIsDefault ? null : bi,
       savedAt:  new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
     };
   }
@@ -396,24 +406,15 @@ document.addEventListener('DOMContentLoaded', () => {
       ['Issue',                    issueResized],
       ['Action Taken',             actionResized],
     ];
-    // Business Impact — only include if user changed anything from defaults
-    const bi = s.bi || {};
-    const biIsDefault = (
-      bi.users     === '≤10' &&
-      bi.financial === 'No'  &&
-      bi.deadline  === 'No'  &&
-      bi.client    === 'No'  &&
-      bi.firsttime === 'No'  &&
-      !bi.financialDetail    &&
-      !bi.comments
-    );
-    if (!biIsDefault) {
+    // Business Impact — only include if user changed from defaults
+    const bi = s.bi;
+    if (bi) {
       const biSummary = [
-        `Users Impacted: ${bi.users || '—'}`,
-        `Financial Risk: ${bi.financial || '—'}${bi.financial === 'Yes' && bi.financialDetail ? ` (${bi.financialDetail})` : ''}`,
-        `Deadline at Risk: ${bi.deadline || '—'}`,
-        `Client Acquisition/Project Loss Risk: ${bi.client || '—'}`,
-        `First Time Implementation: ${bi.firsttime || '—'}`,
+        `Users Impacted: ${bi.users}`,
+        `Financial Risk: ${bi.financial}${bi.financial === 'Yes' && bi.financialDetail ? ` (${bi.financialDetail})` : ''}`,
+        `Deadline at Risk: ${bi.deadline}`,
+        `Client Acquisition/Project Loss Risk: ${bi.client}`,
+        `First Time Implementation: ${bi.firsttime}`,
         bi.comments ? `Comments: ${bi.comments}` : '',
       ].filter(Boolean).join('\n');
       rows.push(['Business Impact', escapeHtml(biSummary)]);
@@ -560,20 +561,32 @@ ${gap}
 ${label('Next Contact Date')}
 ${line(escapeHtml(s.date))}` : '';
 
+    // Build Business Impact block for email (only if user changed from defaults)
+    const bi = s.bi;
+    const biEmailBlock = bi ? (() => {
+      const rows = [
+        `Users Impacted: ${bi.users}`,
+        `Financial Risk: ${bi.financial}${bi.financial === 'Yes' && bi.financialDetail ? ` (${bi.financialDetail})` : ''}`,
+        `Deadline at Risk: ${bi.deadline}`,
+        `Client Acquisition / Project Loss Risk: ${bi.client}`,
+        `First Time Implementation: ${bi.firsttime}`,
+        bi.comments ? `Additional Comments: ${bi.comments}` : '',
+      ].filter(Boolean).map(r => `<p style="margin:0 0 4px 0;font-size:13px">${escapeHtml(r)}</p>`).join('');
+      return `\n${gap}\n${label('Impact')}\n<div style="padding:6px 10px;background:#f5f6fa;border-left:3px solid #0f6cbd;font-size:13px;line-height:1.6">${rows}</div>`;
+    })() : '';
+
     let bodyHTML;
     if (planEmpty) {
-      // No Action Plan provided → Issue, Action Taken, (Next Contact Date if meaningful)
       bodyHTML = `
 ${label('Issue')}
-${humanise(issueParts)}
+${humanise(issueParts)}${biEmailBlock}
 ${gap}
 ${label('Action Taken')}
 ${humanise(actionParts)}${dateBlock}`;
     } else {
-      // Action Plan provided → Issue, Action Taken, Action Plan, Next Action Owner, (Next Contact Date if meaningful)
       bodyHTML = `
 ${label('Issue')}
-${humanise(issueParts)}
+${humanise(issueParts)}${biEmailBlock}
 ${gap}
 ${label('Action Taken')}
 ${humanise(actionParts)}
@@ -793,21 +806,18 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   const fqrEl      = document.getElementById('itg-fqr');
   const ftsEl      = document.getElementById('itg-fts');
   const sapEl      = document.getElementById('itg-sap');
-  const commentsEl = document.getElementById('itg-comments');
-  const preview    = document.getElementById('itg-preview');
-  const suggestedEl     = document.getElementById('itg-suggested-status');
+  const commentsEl  = document.getElementById('itg-comments');
+  const preview     = document.getElementById('itg-preview');
+  const suggestedEl = document.getElementById('itg-suggested-status');
 
-  /* ── Set defaults ── */
-  lcEl.value = localDateStr(0);   // today
-  ncEl.value = nextWeekdayDateStr();   // next weekday
-
-function suggestedStatus() {
+  /* ── Suggested DfM Case Status mapping ── */
+  function suggestedStatus() {
     const s = statusEl.value;
     if (/^(troubleshooting|pending log analysis)$/i.test(s))
       return 'Troubleshooting';
-    if (/^(pending closure confirmation|pending recovery|action plan shared)$/i.test(s))
+    if (/^(pending closure confirmation|pending recovery|action plan shared|action plan provided)$/i.test(s))
       return 'Waiting for Customer Confirmation';
-    if (/^(pending pg||action plan provided by pg)$/i.test(s))
+    if (/^(pending pg|pending bug fix)$/i.test(s))
       return 'Waiting for Product Team';
     if (/^issue resolved, rca pending$/i.test(s))
       return 'Mitigated';
@@ -816,6 +826,10 @@ function suggestedStatus() {
     // Unresponsive cx, Pending cx to share..., anything else
     return 'Pending Customer Response';
   }
+
+  /* ── Set defaults ── */
+  lcEl.value = localDateStr(0);   // today
+  ncEl.value = nextWeekdayDateStr();   // next weekday
 
   /* ── Build the output string ── */
   function buildOutput() {
@@ -831,11 +845,10 @@ function suggestedStatus() {
     return comments ? `${base} | Comments: ${comments}` : base;
   }
 
-   
-
   /* ── Live preview ── */
   function updatePreview() {
     preview.textContent = buildOutput();
+    suggestedEl.textContent = suggestedStatus();
   }
   [lcEl, ncEl, statusEl, icmEl, fqrEl, ftsEl, sapEl].forEach(el =>
     el.addEventListener('change', updatePreview)
@@ -874,22 +887,23 @@ function suggestedStatus() {
   /* ── Current state ── */
   function itgCurrentState() {
     return {
-      lc:     lcEl.value,
-      nc:     ncEl.value,
-      status: statusEl.value,
-      icm:      icmEl.value,
-      fqr:      fqrEl.value,
-      fts:      ftsEl.value,
-      sap:      sapEl.value,
-      comments: commentsEl.value.trim(),
-      output: buildOutput(),
+      lc:                 lcEl.value,
+      nc:                 ncEl.value,
+      status:             statusEl.value,
+      icm:                icmEl.value,
+      fqr:                fqrEl.value,
+      fts:                ftsEl.value,
+      sap:                sapEl.value,
+      comments:           commentsEl.value.trim(),
+      suggestedDfmStatus: suggestedStatus(),
+      output:             buildOutput(),
       savedAt: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
     };
   }
 
   /* ── Dedup key: all fields ── */
   function itgKey(s) {
-    return [s.lc, s.nc, s.status, s.icm, s.fqr, s.fts, s.sap, (s.comments||'').toLowerCase()].join('|||');
+    return [s.lc, s.nc, s.status, s.icm, s.fqr, s.fts, s.sap, (s.comments||'').toLowerCase(), (s.suggestedDfmStatus||'')].join('|||');
   }
 
   /* ── Save with dedup ── */
@@ -1010,6 +1024,7 @@ function suggestedStatus() {
             <div class="history-row"><span class="history-label">LC</span><span class="history-value">${fmtDate(item.lc)}</span></div>
             <div class="history-row"><span class="history-label">NC</span><span class="history-value">${fmtDate(item.nc)}</span></div>
             <div class="history-row"><span class="history-label">Status</span><span class="history-value">${item.status || '—'}</span></div>
+            ${item.suggestedDfmStatus ? `<div class="history-row"><span class="history-label">DfM Status</span><span class="history-value" style="color:#1a5e1a;font-weight:600">${item.suggestedDfmStatus}</span></div>` : ''}
             <div class="history-row"><span class="history-label">Output</span><span class="history-value" style="white-space:normal;font-size:11px;font-family:monospace">${item.output || '—'}</span></div>
             ${item.comments ? `<div class="history-row"><span class="history-label">Comments</span><span class="history-value">${item.comments}</span></div>` : ''}
           </div>`;

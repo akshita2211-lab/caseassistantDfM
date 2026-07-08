@@ -539,3 +539,13 @@ label {
 @media (max-width: 520px) {
   .impact-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Suggested DfM status ── */
+.itg-suggested {
+  background: #eef6ee;
+  border-color: #a8d5a8;
+  color: #1a5e1a;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: normal;
+}
